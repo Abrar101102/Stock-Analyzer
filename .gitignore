@@ -1,7 +1,9 @@
 backend/myenv/
 backend/__pycache__/
 backend/.env
-backend/*.pyc
+backend/*.pyc/
+backend/__pycache__/*.py[cod]
+*.py[cod]
 ##frontend
 frontend/dist/
 frontend/node_modules/

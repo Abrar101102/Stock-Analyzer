@@ -8,3 +8,4 @@ def health_check():
     "status":"UP",
     "service":"Stock Analyzer API"
   }
+
