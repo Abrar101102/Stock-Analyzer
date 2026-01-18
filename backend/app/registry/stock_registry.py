@@ -1,6 +1,8 @@
 from typing import Dict
 from app.models.stock import StockSymbol
 
+# Registry is responsible for Is this symbol allowed and what does it represent?
+
 class StockRegistry:
   """
   Central Registry of Supported Stocks.
