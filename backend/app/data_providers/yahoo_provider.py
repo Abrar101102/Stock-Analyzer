@@ -17,7 +17,7 @@ class YahooMarketDataProvider(MarketDataProvider):
         "high": float(row["High"]),
         "low": float(row["Low"]),
         "close": float(row["Close"]),
-        "volume": float(row["Volume"])
+        "volume": int(row["Volume"])
       })
 
     return data

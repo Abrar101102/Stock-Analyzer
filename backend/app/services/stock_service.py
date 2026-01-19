@@ -1,22 +1,20 @@
+from typing import Dict,List
+from app.registry.stock_registry import StockRegistry
+from app.data_providers.base_provider import MarketDataProvider
 from app.data_sources.market_data_source import MarketDataSource
+
 
 class StockService:
   """
   Service class for stock-related operations.
   """
-  def __init__(self):
-    self.market_data = MarketDataSource()
+  def __init__(self,provider:MarketDataProvider):
+    self.provider = provider
 
-  def get_basic_info(self,symbol:str)->dict:
-    df = self.market_data.fetch_history(symbol)
+  def get_price_history(self,symbol:str,period:str="6mo")->List[Dict]:
+    if not StockRegistry.exists(symbol):
+      raise ValueError(f"Stock symbol {symbol} not found in registry.")
+    
+    stock = StockRegistry.get_stock(symbol)
 
-    if df is None or df.empty:
-      return {
-        "Symbol":symbol,
-        "Message":"No Market Data Found"
-      }
-    latest_price = df.iloc[-1]["Close"]
-    return {
-      "symbol":symbol,
-      "latest_price": round(float(latest_price),2),
-    }
+    return self.provider.get_price_history(symbol.yahoo_symbol,period)
