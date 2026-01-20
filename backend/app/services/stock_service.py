@@ -17,4 +17,4 @@ class StockService:
     
     stock = StockRegistry.get_stock(symbol)
 
-    return self.provider.get_price_history(symbol.yahoo_symbol,period)
+    return self.provider.get_price_history(stock.yahoo_symbol,period)
