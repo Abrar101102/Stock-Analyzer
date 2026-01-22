@@ -3,7 +3,7 @@ backend/__pycache__/
 backend/.env
 backend/*.pyc/
 backend/__pycache__/*.py[cod]
-*.py[cod]
+*.pyc
 ##frontend
 frontend/dist/
 frontend/node_modules/
