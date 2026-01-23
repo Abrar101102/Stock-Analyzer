@@ -1,0 +1,21 @@
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class CashFlowStatementModel:
+  """
+  Represents a company's cash flow statement for a specific fiscal period.
+  """
+  symbol:str
+  period:str
+  fiscal_year:int
+  # operating cash flow
+  operating_cash_flow : Optional[float] = None
+  # Investing Cash Flow
+  capital_expenditure : Optional[float] = None
+  investing_cash_flow : Optional[float] = None
+  # Financing Cash Flow
+  financing_cash_flow : Optional[float] = None
+  # Net Result
+  net_cash_flow : Optional[float] = None
