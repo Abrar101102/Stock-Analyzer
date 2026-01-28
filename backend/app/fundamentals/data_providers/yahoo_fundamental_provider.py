@@ -8,7 +8,7 @@ import yfinance as yf
 from typing import List,Optional,Dict
 
 class YahooFundamentalProvider(BaseFundamentalProvider):
-  def get_balance_sheet(self, symbol, period = 'annual', limit = 5)->List[IncomeStatementModel]:
+  def get_balance_sheets(self, symbol, period = 'annual', limit = 5)->List[IncomeStatementModel]:
    """Returns last N years of balance sheet statements for the given symbol from Yahoo Finance"""
    ticker = yf.Ticker(symbol)
    raw_bs = ticker.balance_sheet
@@ -23,7 +23,7 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
          current_assets = raw_bs.get('Current Assets',{}).get(fiscal_year),
          cash_and_equivalents = raw_bs.get('Cash And Cash Equivalents',{}).get(fiscal_year),
          total_liabilities = raw_bs.get('Total Liabilities and Net Minorities Interest',{}).get(fiscal_year),
-         current_liablities = raw_bs.get('Current Liabilities',{}).get(fiscal_year),
+         current_liabilities = raw_bs.get('Current Liabilities',{}).get(fiscal_year),
          long_term_debt = raw_bs.get('Long Term Debt',{}).get(fiscal_year),
          shareholders_equity = raw_bs.get("Shareholders' Equity",{}).get(fiscal_year)
        )
@@ -31,7 +31,7 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
      )
    return models
 
-  def get_income_statement(self, symbol, period = 'annual', limit = 5)->List[IncomeStatementModel]:
+  def get_income_statements(self, symbol, period = 'annual', limit = 5)->List[IncomeStatementModel]:
     """Returns last N years of income statements for the given symbol from Yahoo Finance"""
     ticker = yf.Ticker(symbol)
     raw_is = ticker.financials # Raw income Statement Data from yfinance

@@ -11,7 +11,7 @@ class BaseFundamentalProvider(ABC):
   Base interface for fundamental data providers. ANy Provider (yahoo, alpha vantage etc) must implement this interface.
   """
   @abstractmethod
-  def get_balance_sheet(self,symbol:str,period:str = 'annual',limit : int = 5) -> List[IncomeStatementModel]:
+  def get_income_statements(self,symbol:str,period:str = 'annual',limit : int = 5) -> List[IncomeStatementModel]:
     """ Fetch Income Statements"""
     pass
   @abstractmethod
