@@ -1,15 +1,17 @@
 from fundamentals.data_providers.base_fundamental_provider import BaseFundamentalProvider
 from fundamentals.models.financial_ratio_model import FinancialRatioModel
+from fundamentals.models.fundamental_snapshot_model import FundamentalSnapShotModel
+from typing import List
 
 class FundamentalService:
   def  __init__(self,provider:BaseFundamentalProvider):
     self.provider = provider
 
-  def get_fundamental_snapshot(self,symbol:str,period:str="annual"):
+  def get_fundamental_snapshot(self,symbol:str,period:str="annual") -> FundamentalSnapShotModel:
     fundamenta_snap = self.provider.get_fundamental_snapshot(symbol,period)
     return fundamenta_snap
 
-  def get_fundamentals(self,symbol:str,period:str="annual",limit:int=5):
+  def get_fundamentals(self,symbol:str,period:str="annual",limit:int=5) -> dict:
     income_statements= self.provider.get_income_statements(symbol,period,limit)
     balance_sheets = self.provider.get_balance_sheets(symbol,period,limit)
     cash_flows = self.provider.get_cash_flows(symbol,period,limit)
@@ -24,13 +26,13 @@ class FundamentalService:
       raise ValueError(f"No cash flow data found for symbol: {symbol}")
     
     return {
-      "income_statements":income_statements[:limit].sort(key = lambda x:x.fiscal_year,reverse=True),
-      "balance_sheets":balance_sheets[:limit].sort(key = lambda x:x.fiscal_year,reverse=True),
-      "cash_flows":cash_flows[:limit].sort(key = lambda x:x.fiscal_year,reverse=True)
+      "income_statements": sorted(income_statements,key = lambda x:x.fiscal_year,reverse=True),
+      "balance_sheets": sorted(balance_sheets,key = lambda x:x.fiscal_year,reverse=True),
+      "cash_flows": sorted(cash_flows,key = lambda x:x.fiscal_year,reverse=True)
     }
   
 
-  def get_ratios(self,symbol:str,period:str="annual",limit:int=5):
+  def get_ratios(self,symbol:str,period:str="annual",limit:int=5) -> List[FinancialRatioModel]:
     fundamentals = self.get_fundamentals(symbol,period,limit)
     income_statements = fundamentals['income_statements']
     balance_sheets = fundamentals['balance_sheets']
@@ -67,7 +69,7 @@ class FundamentalService:
 
       ratio_fiscal_year.append(
         FinancialRatioModel(
-        symbol = symbol,
+        symbol = symbol.upper().strip(),
         fiscal_year = inc.fiscal_year,
         net_margin = net_margin,
         current_ratio = current_ratio,
