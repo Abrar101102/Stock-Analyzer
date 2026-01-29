@@ -8,12 +8,12 @@ import yfinance as yf
 from typing import List,Optional,Dict
 
 class YahooFundamentalProvider(BaseFundamentalProvider):
-  def get_balance_sheets(self, symbol, period = 'annual', limit = 5)->List[IncomeStatementModel]:
+  def get_balance_sheets(self, symbol, period = 'annual')->List[IncomeStatementModel]:
    """Returns last N years of balance sheet statements for the given symbol from Yahoo Finance"""
    ticker = yf.Ticker(symbol)
    raw_bs = ticker.balance_sheet
    models:List[BalanceSheetModel] = []
-   for fiscal_year in raw_bs.columns[:limit]:
+   for fiscal_year in raw_bs.columns:
      models.append(
        BalanceSheetModel(
          symbol = symbol,
@@ -31,12 +31,12 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
      )
    return models
 
-  def get_income_statements(self, symbol, period = 'annual', limit = 5)->List[IncomeStatementModel]:
+  def get_income_statements(self, symbol, period = 'annual')->List[IncomeStatementModel]:
     """Returns last N years of income statements for the given symbol from Yahoo Finance"""
     ticker = yf.Ticker(symbol)
     raw_is = ticker.financials # Raw income Statement Data from yfinance
     models:List[IncomeStatementModel] = []
-    for fiscal_year in raw_is.columns[:limit]:
+    for fiscal_year in raw_is.columns:
       models.append(
         IncomeStatementModel(
           symbol = symbol,
@@ -50,14 +50,14 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
       )
     return models
 
-  def get_cash_flows(self, symbol, period = 'annual', limit = 5)->List[CashFlowModel]:
+  def get_cash_flows(self, symbol, period = 'annual')->List[CashFlowModel]:
     """Returns last N years of cash flow statements for the given symbol from Yahoo Finance"""
     ticker = yf.Ticker(symbol)
     raw_cf = ticker.cashflow
 
     models:List[CashFlowModel] = []
 
-    for fiscal_year in raw_cf.columns[:limit]:
+    for fiscal_year in raw_cf.columns:
       models.append(
         CashFlowModel(
           symbol = symbol,
@@ -72,22 +72,3 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
       )
 
     return models
-
-  def get_fundamental_snapshot(self, symbol, period = 'annual', fiscal_year = None) -> FundamentalSnapshotModel:
-    """Returns a compact snapshot of fundamentals(headline metrics derived from statements) for the given symbol from Yahoo Finance"""
-    income_statement = self.get_income_statement(symbol, period, limit=5)[0]
-    balance_sheet = self.get_balance_sheet(symbol, period, limit=5)[0]
-    cash_flow_statement = self.get_cash_flows(symbol, period, limit=5)[0]
-
-    return FundamentalSnapshotModel(
-      symbol = symbol,
-      period = period,
-      fiscal_year = income_statement.fiscal_year,
-      total_revenue = income_statement.total_revenue,
-      net_income = income_statement.net_income,
-      eps = income_statement.eps,
-      operating_cash_flow = cash_flow_statement.operating_cash_flow,
-      total_liabilities = balance_sheet.total_liabilities,
-      total_assets = balance_sheet.total_assets,
-      shareholders_equity = balance_sheet.shareholders_equity
-    )
