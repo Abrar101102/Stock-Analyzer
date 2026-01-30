@@ -1,8 +1,8 @@
 from typing import Optional
 from dataclasses import dataclass
-from app.models.fundamentals.income_statement_model import IncomeStatementModel
-from app.models.fundamentals.cash_flow_model import CashFlowStatementModel
-from app.models.fundamentals.balance_sheet_model import BalanceSheetModel
+from app.fundamentals.models.income_statement_model import IncomeStatementModel
+from app.fundamentals.models.cash_flow_model import CashFlowStatementModel
+from app.fundamentals.models.balance_sheet_model import BalanceSheetModel
 
 
 @dataclass

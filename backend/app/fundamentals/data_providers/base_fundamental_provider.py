@@ -1,10 +1,10 @@
 from abc import ABC,abstractmethod
 from typing import List,Dict,Optional
 
-from models.balance_sheet_model import BalanceSheetModel
-from models.income_statement_model import IncomeStatementModel
-from models.cash_flow_model import CashFlowModel
-from models.fundamental_snapshot_model import FundamentalSnapshotModel
+from app.fundamentals.models.balance_sheet_model import BalanceSheetModel
+from app.fundamentals.models.income_statement_model import IncomeStatementModel
+from app.fundamentals.models.cash_flow_model import CashFlowStatementModel
+from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapshotModel
 
 class BaseFundamentalProvider(ABC):
   """
@@ -19,10 +19,6 @@ class BaseFundamentalProvider(ABC):
     """Fetch Balance Sheets"""
     pass
   @abstractmethod
-  def get_cash_flows(self,symbol:str,period:str='annual',limit:int=5)->List[CashFlowModel]:
+  def get_cash_flows(self,symbol:str,period:str='annual',limit:int=5)->List[CashFlowStatementModel]:
     """Fetch Cash Flow Statements"""
-    pass
-  @abstractmethod
-  def get_fundamental_snapshot(self,symbol:str,period:str='annual',fiscal_year:Optional[int]=None)->FundamentalSnapshotModel:
-    """Returns a compact snapshot of fundamentals(headline metrics derived from statements)"""
     pass

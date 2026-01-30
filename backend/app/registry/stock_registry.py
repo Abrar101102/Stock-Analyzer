@@ -27,7 +27,8 @@ class StockRegistry:
   }
   @classmethod
   def get_stock(cls,symbol)->  StockSymbol:
-    normalized = symbol.upper()
+    print("Fetching stock for symbol:",symbol)
+    normalized = symbol.upper().strip()
     return cls._stocks[normalized]
   
   @classmethod

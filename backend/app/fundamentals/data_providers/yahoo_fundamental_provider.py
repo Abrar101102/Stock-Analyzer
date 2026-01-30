@@ -1,24 +1,25 @@
-from fundamentals.data_providers.base_fundamental_provider import BaseFundamentalProvider
-from models.balance_sheet_model import BalanceSheetModel
-from models.income_statement_model import IncomeStatementModel
-from models.cash_flow_model import CashFlowModel
-from models.fundamental_snapshot_model import FundamentalSnapshotModel
+from app.fundamentals.data_providers.base_fundamental_provider import BaseFundamentalProvider
+from app.fundamentals.models.balance_sheet_model import BalanceSheetModel
+from app.fundamentals.models.income_statement_model import IncomeStatementModel
+from app.fundamentals.models.cash_flow_model import CashFlowStatementModel
+from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapshotModel
 
 import yfinance as yf
 from typing import List,Optional,Dict
 
 class YahooFundamentalProvider(BaseFundamentalProvider):
-  def get_balance_sheets(self, symbol, period = 'annual')->List[IncomeStatementModel]:
+  def get_balance_sheets(self, symbol, period = 'annual')->List[BalanceSheetModel]:
    """Returns last N years of balance sheet statements for the given symbol from Yahoo Finance"""
    ticker = yf.Ticker(symbol)
    raw_bs = ticker.balance_sheet
    models:List[BalanceSheetModel] = []
+   print("Raw balance sheet data columns:",raw_bs.head(5))
    for fiscal_year in raw_bs.columns:
      models.append(
        BalanceSheetModel(
          symbol = symbol,
          period = period,
-         fiscal_year = int(fiscal_year),
+         fiscal_year = int(fiscal_year.year) if hasattr(fiscal_year,'year') else int(fiscal_year),
          total_assets = raw_bs.get('Total Assets',{}).get(fiscal_year),
          current_assets = raw_bs.get('Current Assets',{}).get(fiscal_year),
          cash_and_equivalents = raw_bs.get('Cash And Cash Equivalents',{}).get(fiscal_year),
@@ -29,6 +30,7 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
        )
        
      )
+   print(f"Retrieved {len(models)} balance sheet models for symbol {symbol}")
    return models
 
   def get_income_statements(self, symbol, period = 'annual')->List[IncomeStatementModel]:
@@ -36,12 +38,13 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
     ticker = yf.Ticker(symbol)
     raw_is = ticker.financials # Raw income Statement Data from yfinance
     models:List[IncomeStatementModel] = []
+    print("Raw balance sheet data columns:",raw_is.head(5))
     for fiscal_year in raw_is.columns:
       models.append(
         IncomeStatementModel(
           symbol = symbol,
           period = period,
-          fiscal_year = fiscal_year,
+          fiscal_year = int(fiscal_year.year) if hasattr(fiscal_year,'year') else int(fiscal_year),
           total_revenue = raw_is.get("Total Revenue",{}).get(fiscal_year),
           operating_income = raw_is.get("Operating Income",{}).get(fiscal_year),
           net_income = raw_is.get('Net Income',{}).get(fiscal_year),
@@ -50,19 +53,21 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
       )
     return models
 
-  def get_cash_flows(self, symbol, period = 'annual')->List[CashFlowModel]:
+  def get_cash_flows(self, symbol, period = 'annual')->List[CashFlowStatementModel]:
     """Returns last N years of cash flow statements for the given symbol from Yahoo Finance"""
     ticker = yf.Ticker(symbol)
     raw_cf = ticker.cashflow
 
-    models:List[CashFlowModel] = []
+    models:List[CashFlowStatementModel] = []
+    print("Raw cash flow data columns:",raw_cf.head(5))
 
     for fiscal_year in raw_cf.columns:
+
       models.append(
-        CashFlowModel(
+        CashFlowStatementModel(
           symbol = symbol,
           period = period,
-          fiscal_year = fiscal_year,
+          fiscal_year = int(fiscal_year.year) if hasattr(fiscal_year,'year') else int(fiscal_year),
           operating_cash_flow = raw_cf.get("Toal Cash Flow From Operating Activities",{}).get(fiscal_year),
           capital_expenditure = raw_cf.get("Capital Expenditures",{}).get(fiscal_year),
           investing_cash_flow = raw_cf.get("Total Cash Flows From Investing Activities",{}).get(fiscal_year),

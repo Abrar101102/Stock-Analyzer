@@ -1,6 +1,7 @@
-from fundamentals.data_providers.base_fundamental_provider import BaseFundamentalProvider
-from fundamentals.models.financial_ratio_model import FinancialRatioModel
-from fundamentals.models.fundamental_snapshot_model import FundamentalSnapShotModel
+from app.fundamentals.data_providers.base_fundamental_provider import BaseFundamentalProvider
+from app.fundamentals.models.financial_ratio_model import FinancialRatioModel
+from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapshotModel
+from app.registry.stock_registry import StockRegistry
 from typing import List
 import logging
 
@@ -22,16 +23,17 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     self.provider = provider
     
   def _normalize_symbol(self,symbol:str)->str:
-    return symbol.upper().strip()
+    # Check if symbol is in registry and return normalized version if it exists 
+    stock = StockRegistry.get_stock(symbol)
+    return stock.yahoo_symbol
 
-  def get_fundamental_snapshot(self,symbol:str,period:str="annual") -> FundamentalSnapShotModel:
-    symbol = self._normalize_symbol(symbol)
+  def get_fundamental_snapshot(self,symbol:str,period:str="annual") -> FundamentalSnapshotModel:
     fundamentals = self.get_fundamentals(symbol)
     income_statement = fundamentals['income_statements'][0]
     balance_sheet = fundamentals['balance_sheets'][0]
     cash_flow = fundamentals['cash_flows'][0]
 
-    return FundamentalSnapShotModel(
+    return FundamentalSnapshotModel(
       symbol = symbol,
       period = period,
       fiscal_year = income_statement.fiscal_year,
@@ -46,10 +48,11 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
 
   def get_fundamentals(self,symbol:str,period:str="annual",limit:int=5) -> dict:
     symbol = self._normalize_symbol(symbol)
-    income_statements= self.provider.get_income_statements(symbol,period,limit)
-    balance_sheets = self.provider.get_balance_sheets(symbol,period,limit)
-    cash_flows = self.provider.get_cash_flows(symbol,period,limit)
+    income_statements= self.provider.get_income_statements(symbol,period)
+    balance_sheets = self.provider.get_balance_sheets(symbol,period)
+    cash_flows = self.provider.get_cash_flows(symbol,period)
 
+    print(f"After filtering, {len(income_statements)} income statements, {len(balance_sheets)} balance sheets, {len(cash_flows)} cash flow statements remain for symbol {symbol}")
     if not income_statements and not balance_sheets and not cash_flows:
       raise ValueError(f"No fundamental data found for symbol: {symbol}")
     elif not income_statements:
@@ -73,6 +76,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       filtered_income_statements.append(inc)
 
     for bs in balance_sheets:
+      print(bs)
       if bs.fiscal_year is None:
         logger.warning(f"Balance sheet data missing fiscal year for symbol: {symbol}")
         continue
@@ -92,6 +96,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     balance_sheets = filtered_balance_sheets
     cash_flows = filtered_cash_flows
 
+    
     return {
       "income_statements": sorted(income_statements,key = lambda x:x.fiscal_year,reverse=True)[:limit],
       "balance_sheets": sorted(balance_sheets,key = lambda x:x.fiscal_year,reverse=True)[:limit],
@@ -100,7 +105,6 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
   
 
   def get_ratios(self,symbol:str,period:str="annual",limit:int=5) -> List[FinancialRatioModel]:
-    symbol = self._normalize_symbol(symbol)
     fundamentals = self.get_fundamentals(symbol,period,limit)
     income_statements = fundamentals['income_statements']
     balance_sheets = fundamentals['balance_sheets']
