@@ -16,9 +16,9 @@ class FundamentalSnapshotModel:
     fiscal_year: int
 
     # Full statements (compositon)
-    income_statement : Optional[IncomeStatementModel]
-    cash_flow_statement : Optional[CashFlowStatementModel]
-    balance_sheet : Optional[BalanceSheetModel]
+    # income_statement : Optional[IncomeStatementModel]
+    # cash_flow_statement : Optional[CashFlowStatementModel]
+    # balance_sheet : Optional[BalanceSheetModel]
 
     # Key Metrics (flattened for quick access)
     # From Income Sheet Model

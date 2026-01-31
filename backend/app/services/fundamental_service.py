@@ -32,9 +32,12 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     income_statement = fundamentals['income_statements'][0]
     balance_sheet = fundamentals['balance_sheets'][0]
     cash_flow = fundamentals['cash_flows'][0]
+    
+    if not income_statement or not balance_sheet or not cash_flow:
+      raise ValueError("Insufficient data to build snapshot")
 
     return FundamentalSnapshotModel(
-      symbol = symbol,
+      symbol = self._normalize_symbol(symbol),
       period = period,
       fiscal_year = income_statement.fiscal_year,
       total_revenue = income_statement.total_revenue,
@@ -137,11 +140,11 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       ocf_quality  = cf.operating_cash_flow / abs(inc.net_income) if inc.net_income and inc.net_income !=0 else None
 
       free_cash_flow = None # From Cash Flow 
-      free_cash_flow = cf.operating_cash_flow - abs(cf.capital_expenditures) if cf.operating_cash_flow and cf.capital_expenditures else None
+      free_cash_flow = cf.operating_cash_flow - abs(cf.capital_expenditure) if cf.operating_cash_flow and cf.capital_expenditure else None
 
       ratio_fiscal_year.append(
         FinancialRatioModel(
-        symbol = symbol,
+        symbol = self._normalize_symbol(symbol),
         fiscal_year = inc.fiscal_year,
         net_margin = round(net_margin,4) if net_margin else None,
         current_ratio = round(current_ratio,4) if current_ratio else None,

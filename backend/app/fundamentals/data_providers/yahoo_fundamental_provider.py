@@ -2,78 +2,142 @@ from app.fundamentals.data_providers.base_fundamental_provider import BaseFundam
 from app.fundamentals.models.balance_sheet_model import BalanceSheetModel
 from app.fundamentals.models.income_statement_model import IncomeStatementModel
 from app.fundamentals.models.cash_flow_model import CashFlowStatementModel
-from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapshotModel
 
 import yfinance as yf
-from typing import List,Optional,Dict
+from typing import List
+import pandas as pd
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class YahooFundamentalProvider(BaseFundamentalProvider):
-  def get_balance_sheets(self, symbol, period = 'annual')->List[BalanceSheetModel]:
-   """Returns last N years of balance sheet statements for the given symbol from Yahoo Finance"""
-   ticker = yf.Ticker(symbol)
-   raw_bs = ticker.balance_sheet
-   models:List[BalanceSheetModel] = []
-   print("Raw balance sheet data columns:",raw_bs.head(5))
-   for fiscal_year in raw_bs.columns:
-     models.append(
-       BalanceSheetModel(
-         symbol = symbol,
-         period = period,
-         fiscal_year = int(fiscal_year.year) if hasattr(fiscal_year,'year') else int(fiscal_year),
-         total_assets = raw_bs.get('Total Assets',{}).get(fiscal_year),
-         current_assets = raw_bs.get('Current Assets',{}).get(fiscal_year),
-         cash_and_equivalents = raw_bs.get('Cash And Cash Equivalents',{}).get(fiscal_year),
-         total_liabilities = raw_bs.get('Total Liabilities and Net Minorities Interest',{}).get(fiscal_year),
-         current_liabilities = raw_bs.get('Current Liabilities',{}).get(fiscal_year),
-         long_term_debt = raw_bs.get('Long Term Debt',{}).get(fiscal_year),
-         shareholders_equity = raw_bs.get("Shareholders' Equity",{}).get(fiscal_year)
-       )
-       
-     )
-   print(f"Retrieved {len(models)} balance sheet models for symbol {symbol}")
-   return models
+    """
+    Yahoo Finance Fundamental Provider
 
-  def get_income_statements(self, symbol, period = 'annual')->List[IncomeStatementModel]:
-    """Returns last N years of income statements for the given symbol from Yahoo Finance"""
-    ticker = yf.Ticker(symbol)
-    raw_is = ticker.financials # Raw income Statement Data from yfinance
-    models:List[IncomeStatementModel] = []
-    print("Raw balance sheet data columns:",raw_is.head(5))
-    for fiscal_year in raw_is.columns:
-      models.append(
-        IncomeStatementModel(
-          symbol = symbol,
-          period = period,
-          fiscal_year = int(fiscal_year.year) if hasattr(fiscal_year,'year') else int(fiscal_year),
-          total_revenue = raw_is.get("Total Revenue",{}).get(fiscal_year),
-          operating_income = raw_is.get("Operating Income",{}).get(fiscal_year),
-          net_income = raw_is.get('Net Income',{}).get(fiscal_year),
-          eps =  None
-        )
-      )
-    return models
+    Provider responsibilities:
+    - Fetch raw data
+    - Convert rows → models
+    - NO filtering
+    - NO limits
+    - NO assumptions about ordering
+    """
 
-  def get_cash_flows(self, symbol, period = 'annual')->List[CashFlowStatementModel]:
-    """Returns last N years of cash flow statements for the given symbol from Yahoo Finance"""
-    ticker = yf.Ticker(symbol)
-    raw_cf = ticker.cashflow
+    # ---------- INTERNAL HELPERS ----------
 
-    models:List[CashFlowStatementModel] = []
-    print("Raw cash flow data columns:",raw_cf.head(5))
+    @staticmethod
+    def _get(df: pd.DataFrame, row: str, col) -> float | None:
+        """
+        Safe row-index lookup for Yahoo Finance dataframes
+        """
+        if df is None or df.empty:
+            return None
+        if row not in df.index:
+            return None
+        # print(df)
+        val = df.loc[row, col]
+        return None if pd.isna(val) else float(val)
 
-    for fiscal_year in raw_cf.columns:
+    @staticmethod
+    def _year(col) -> int:
+        """
+        Extract fiscal year from column (Timestamp or int)
+        """
+        return col.year if hasattr(col, "year") else int(col)
 
-      models.append(
-        CashFlowStatementModel(
-          symbol = symbol,
-          period = period,
-          fiscal_year = int(fiscal_year.year) if hasattr(fiscal_year,'year') else int(fiscal_year),
-          operating_cash_flow = raw_cf.get("Toal Cash Flow From Operating Activities",{}).get(fiscal_year),
-          capital_expenditure = raw_cf.get("Capital Expenditures",{}).get(fiscal_year),
-          investing_cash_flow = raw_cf.get("Total Cash Flows From Investing Activities",{}).get(fiscal_year),
-          financing_cash_flow = raw_cf.get("Total Cash From Financing Activities",{}).get(fiscal_year),
-          net_cash_flow = raw_cf.get("Total Cash From Operating Activities",{}).get(fiscal_year)
-        )
-      )
+    # ---------- BALANCE SHEET ----------
 
-    return models
+    def get_balance_sheets(self, symbol: str, period: str = "annual") -> List[BalanceSheetModel]:
+        ticker = yf.Ticker(symbol)
+        df = ticker.balance_sheet
+
+        models: List[BalanceSheetModel] = []
+
+        if df is None or df.empty:
+            logger.warning(f"No balance sheet data for {symbol}")
+            return models
+
+        logger.debug(f"Raw balance sheet rows: {list(df.index)}")
+
+        for col in df.columns:
+            models.append(
+                BalanceSheetModel(
+                    symbol=symbol,
+                    period=period,
+                    fiscal_year=self._year(col),
+                    total_assets=self._get(df, "Total Assets", col),
+                    current_assets=self._get(df, "Current Assets", col),
+                    cash_and_equivalents=self._get(df, "Cash And Cash Equivalents", col),
+                    total_liabilities=self._get(
+                        df, "Total Liabilities Net Minority Interest", col
+                    ),
+                    current_liabilities=self._get(df, "Current Liabilities", col),
+                    long_term_debt=self._get(df, "Total Debt", col),
+                    shareholders_equity=self._get(df, "Tangible Book Value", col),
+                )
+            )
+
+        return models
+
+    # ---------- INCOME STATEMENT ----------
+
+    def get_income_statements(self, symbol: str, period: str = "annual") -> List[IncomeStatementModel]:
+        ticker = yf.Ticker(symbol)
+        df = ticker.financials
+
+        models: List[IncomeStatementModel] = []
+
+        if df is None or df.empty:
+            logger.warning(f"No income statement data for {symbol}")
+            return models
+
+        logger.debug(f"Raw income statement rows: {list(df.index)}")
+
+        for col in df.columns:
+            models.append(
+                IncomeStatementModel(
+                    symbol=symbol,
+                    period=period,
+                    fiscal_year=self._year(col),
+                    total_revenue=self._get(df, "Total Revenue", col),
+                    operating_income=self._get(df, "Operating Income", col),
+                    net_income=self._get(df, "Net Income", col),
+                    eps=self._get(df, "Basic EPS", col),
+                )
+            )
+
+        return models
+
+    # ---------- CASH FLOW ----------
+
+    def get_cash_flows(self, symbol: str, period: str = "annual") -> List[CashFlowStatementModel]:
+        ticker = yf.Ticker(symbol)
+        df = ticker.cashflow
+
+        models: List[CashFlowStatementModel] = []
+
+        if df is None or df.empty:
+            logger.warning(f"No cash flow data for {symbol}")
+            return models
+
+        logger.debug(f"Raw cash flow rows: {list(df.index)}")
+
+        for col in df.columns:
+            models.append(
+                CashFlowStatementModel(
+                    symbol=symbol,
+                    period=period,
+                    fiscal_year=self._year(col),
+                    operating_cash_flow=self._get(df, "Operating Cash Flow", col),
+                    capital_expenditure=self._get(df, "Capital Expenditure", col),
+                    net_cash_flow=self._get(df, "Free Cash Flow", col),
+                    investing_cash_flow=self._get(
+                        df, "Total Cash Flows From Investing Activities", col
+                    ),
+                    financing_cash_flow=self._get(
+                        df, "Total Cash From Financing Activities", col
+                    ),
+                )
+            )
+
+        return models
