@@ -1,10 +1,12 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional,Literal
+
+periodType = Literal["annual","quarterly"]
 
 @dataclass
 class IncomeStatementModel:
   symbol:str
-  period:str
+  period:periodType
   fiscal_year:int
   total_revenue: Optional[float] = None
   operating_income:Optional[float] = None

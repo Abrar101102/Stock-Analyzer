@@ -6,6 +6,7 @@ from typing import List
 import logging
 
 logger = logging.getLogger(__name__)
+max_limit = 20
 
 class FundamentalService:
   """
@@ -26,15 +27,24 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     # Check if symbol is in registry and return normalized version if it exists 
     stock = StockRegistry.get_stock(symbol)
     return stock.yahoo_symbol
+  
+  def _validate_limit(self,limit:int)->int:
+    if limit <=0:
+      raise ValueError("Limit must be a positive integer")
+    if limit > max_limit:
+      raise ValueError(f"Limit exceeds maximum allowed value of {max_limit}")
+    if limit is None:
+      raise ValueError("Limit must be provided")
+    if not instance(limit,int):
+      raise ValueError("Limit must be an integer")
+    return limit
 
   def get_fundamental_snapshot(self,symbol:str,period:str="annual") -> FundamentalSnapshotModel:
     fundamentals = self.get_fundamentals(symbol)
     income_statement = fundamentals['income_statements'][0]
     balance_sheet = fundamentals['balance_sheets'][0]
     cash_flow = fundamentals['cash_flows'][0]
-    
-    if not income_statement or not balance_sheet or not cash_flow:
-      raise ValueError("Insufficient data to build snapshot")
+    if not income_statement or not balance_sheet or not cash_flow:raise ValueError("Insufficient data to build snapshot")
 
     return FundamentalSnapshotModel(
       symbol = self._normalize_symbol(symbol),

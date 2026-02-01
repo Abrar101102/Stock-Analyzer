@@ -1,9 +1,10 @@
-from typing import Optional
+from typing import Optional,Literal
 from dataclasses import dataclass
 from app.fundamentals.models.income_statement_model import IncomeStatementModel
 from app.fundamentals.models.cash_flow_model import CashFlowStatementModel
 from app.fundamentals.models.balance_sheet_model import BalanceSheetModel
 
+periodType = Literal["annual","quarterly"]
 
 @dataclass
 class FundamentalSnapshotModel:
@@ -12,7 +13,7 @@ class FundamentalSnapshotModel:
     """
     # Identification
     symbol: str
-    period: str
+    period: periodType
     fiscal_year: int
 
     # Full statements (compositon)

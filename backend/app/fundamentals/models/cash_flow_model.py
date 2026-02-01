@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional,Literal
 
+periodType = Literal["annual","quarterly"]
 
 @dataclass
 class CashFlowStatementModel:
@@ -8,7 +9,7 @@ class CashFlowStatementModel:
   Represents a company's cash flow statement for a specific fiscal period.
   """
   symbol:str
-  period:str
+  period:periodType
   fiscal_year:int
   # operating cash flow
   operating_cash_flow : Optional[float] = None

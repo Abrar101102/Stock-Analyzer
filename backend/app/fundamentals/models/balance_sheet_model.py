@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional,Literal
 from dataclasses import dataclass
 
+periodType = Literal["annual","quarterly"]
 @dataclass
 class BalanceSheetModel:
   """ 
@@ -8,7 +9,7 @@ class BalanceSheetModel:
   """
   # Identification
   symbol : str
-  period : str
+  period : periodType
   fiscal_year : int
   # Assets
   total_assets : Optional[float] = None
