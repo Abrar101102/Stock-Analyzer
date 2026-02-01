@@ -60,6 +60,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     )
 
   def get_fundamentals(self,symbol:str,period:str="annual",limit:int=5) -> dict:
+    limit = self._validate_limit(limit)
     symbol = self._normalize_symbol(symbol)
     income_statements= self.provider.get_income_statements(symbol,period)
     balance_sheets = self.provider.get_balance_sheets(symbol,period)
@@ -118,6 +119,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
   
 
   def get_ratios(self,symbol:str,period:str="annual",limit:int=5) -> List[FinancialRatioModel]:
+    limit = self._validate_limit(limit)
     fundamentals = self.get_fundamentals(symbol,period,limit)
     income_statements = fundamentals['income_statements']
     balance_sheets = fundamentals['balance_sheets']
