@@ -1,7 +1,8 @@
-from pyndatic import BaseModel
+from dataclasses import dataclass
 from typing import Optional
 
-class FundamentalSnapshotV1(BaseModel):
+@dataclass
+class FundamentalSnapshotV1:
   symbol: str
   fiscal_year :int
   period:int
@@ -16,7 +17,8 @@ class FundamentalSnapshotV1(BaseModel):
   total_liabilities:Optional[float] = None
   shareholers_equity:Optional[float]=None
 
-class IncomeStatementV1(BaseModel):
+@dataclass
+class IncomeStatementV1:
   symbol: str
   fiscal_year :int
   period:int
@@ -25,7 +27,8 @@ class IncomeStatementV1(BaseModel):
   net_income:Optional[float] = None
   eps:Optional[float] = None
 
-class BalanceSheetV1(BaseModel):
+@dataclass
+class BalanceSheetV1:
   symbol: str
   fiscal_year :int
   period:int
@@ -39,7 +42,8 @@ class BalanceSheetV1(BaseModel):
   # Equity
   shareholders_equity : Optional[float] = None
 
-class CashFlowV1(BaseModel):
+@dataclass
+class CashFlowV1:
   symbol: str
   fiscal_year :int
   period:int
@@ -53,7 +57,8 @@ class CashFlowV1(BaseModel):
   # Net Result
   net_cash_flow : Optional[float] = None
 
-class RatioV1(BaseModel):
+@dataclass
+class RatioV1:
   symbol : str
   fiscal_year : int
   net_margin : Optional[float] = None

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.health import router as health_router
 from app.api.stock import router as stock_router
+from app.api.v1.fundamentals import router as fundamental_router
 
 app = FastAPI(title="Stock Analyzer")
 app.add_middleware(
@@ -12,8 +13,12 @@ app.add_middleware(
   allow_headers=["*"],
 )
 
+routes_under_api = [stock_router,fundamental_router]
 app.include_router(health_router)
-app.include_router(stock_router,prefix="/api")
+# app.include_router(stock_router,prefix="/api")
+for route in routes_under_api:
+  app.include_router(route,prefix="/api")
+# app.include_router(fundamental_router,prefix="/api")
 # @app.get("/health")
 # def health_check():
 #   return {"status":"ok"}

@@ -38,12 +38,17 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     if not instance(limit,int):
       raise ValueError("Limit must be an integer")
     return limit
+  
+  def _select_by_year(self,models,fiscal_year):
+    return next(
+      (m for m in models if m.fiscal_year == fiscal_year),None
+    )
 
-  def get_fundamental_snapshot(self,symbol:str,period:str="annual") -> FundamentalSnapshotModel:
+  def get_fundamental_snapshot(self,symbol:str,fiscal_year:int,period:str="annual") -> FundamentalSnapshotModel:
     fundamentals = self.get_fundamentals(symbol)
-    income_statement = fundamentals['income_statements'][0]
-    balance_sheet = fundamentals['balance_sheets'][0]
-    cash_flow = fundamentals['cash_flows'][0]
+    income_statement = self._select_by_year(fundamentals['income_statements'],fiscal_year)
+    balance_sheet = self._select_by_year(fundamentals['balance_sheets'],fiscal_year)
+    cash_flow = self._select_by_year(fundamentals['cash_flows'],fiscal_year)
     if not income_statement or not balance_sheet or not cash_flow:raise ValueError("Insufficient data to build snapshot")
 
     return FundamentalSnapshotModel(
@@ -59,7 +64,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       shareholders_equity = balance_sheet.shareholders_equity
     )
 
-  def get_fundamentals(self,symbol:str,period:str="annual",limit:int=5) -> dict:
+  def get_fundamentals(self,symbol:str,fiscal_year:int,period:str="annual",limit:int=5) -> dict:
     limit = self._validate_limit(limit)
     symbol = self._normalize_symbol(symbol)
     income_statements= self.provider.get_income_statements(symbol,period)
