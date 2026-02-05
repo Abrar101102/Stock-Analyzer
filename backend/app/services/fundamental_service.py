@@ -2,6 +2,7 @@ from app.fundamentals.data_providers.base_fundamental_provider import BaseFundam
 from app.fundamentals.models.financial_ratio_model import FinancialRatioModel
 from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapshotModel
 from app.registry.stock_registry import StockRegistry
+from core.exceptions import ValidationError,NotFoundError
 from typing import List
 import logging
 
@@ -30,13 +31,30 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
   
   def _validate_limit(self,limit:int)->int:
     if limit <=0:
-      raise ValueError("Limit must be a positive integer")
+      raise ValidationError(
+        code = "INVALID_LIMIT",
+        message = "Limit Must be Greater than Zero",
+        details = {"received":limit} 
+      )
     if limit > max_limit:
-      raise ValueError(f"Limit exceeds maximum allowed value of {max_limit}")
+      raise ValidationError(
+        code = "INVALID_LIMIT",
+        message = f"Limit exceeds maximum allowed value of {max_limit}",
+        details = {"received":limit} 
+      )
+      
     if limit is None:
-      raise ValueError("Limit must be provided")
+      raise ValidationError(
+        code = "INVALID_LIMIT",
+        message = "Limit Must be Provided",
+        details = {"received":None} 
+      )
     if not instance(limit,int):
-      raise ValueError("Limit must be an integer")
+      raise ValidationError(
+        code = "INVALID_LIMIT",
+        message = "Limit Must be of Type Integer",
+        details = {"received":limit} 
+      )
     return limit
   
   def _select_by_year(self,models,fiscal_year):
@@ -49,7 +67,10 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     income_statement = self._select_by_year(fundamentals['income_statements'],fiscal_year)
     balance_sheet = self._select_by_year(fundamentals['balance_sheets'],fiscal_year)
     cash_flow = self._select_by_year(fundamentals['cash_flows'],fiscal_year)
-    if not income_statement or not balance_sheet or not cash_flow:raise ValueError("Insufficient data to build snapshot")
+    if not income_statement or not balance_sheet or not cash_flow:raise NotFoundError(
+                code="FUNDAMENTALS_NOT_FOUND",
+                message=f"No fundamentals found for symbol {symbol}"
+            )
 
     return FundamentalSnapshotModel(
       symbol = self._normalize_symbol(symbol),
@@ -73,13 +94,25 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
 
     print(f"After filtering, {len(income_statements)} income statements, {len(balance_sheets)} balance sheets, {len(cash_flows)} cash flow statements remain for symbol {symbol}")
     if not income_statements and not balance_sheets and not cash_flows:
-      raise ValueError(f"No fundamental data found for symbol: {symbol}")
+      raise NotFoundError(
+                code="FUNDAMENTALS_NOT_FOUND",
+                message=f"No fundamentals found for symbol {symbol}"
+            )
     elif not income_statements:
-      raise ValueError(f"No income statement data found for symbol: {symbol}")
+      raise NotFoundError(
+                code="FUNDAMENTALS_NOT_FOUND",
+                message=f"No Income Statement found for symbol {symbol}"
+            )
     elif not balance_sheets:
-      raise ValueError(f"No balance sheet data found for symbol: {symbol}")
+      raise NotFoundError(
+                code="FUNDAMENTALS_NOT_FOUND",
+                message=f"No Balance Sheet found for symbol {symbol}"
+            )
     elif not cash_flows:
-      raise ValueError(f"No cash flow data found for symbol: {symbol}")
+      raise NotFoundError(
+                code="FUNDAMENTALS_NOT_FOUND",
+                message=f"No Cash Flows found for symbol {symbol}"
+            )
     
     # Filtered lists so mutation during iteration does not cause issues
     filtered_income_statements = []

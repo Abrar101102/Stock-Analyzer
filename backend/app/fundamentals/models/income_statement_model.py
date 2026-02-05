@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from app.core.exceptions import ValidationError
 from typing import Optional,Literal
 
 periodType = Literal["annual","quarterly"]
@@ -15,4 +16,8 @@ class IncomeStatementModel:
 
   def __post_init__(self):
     if self.fiscal_year < 1900 :
-      raise ValueError("Invalid fiscal year")
+      raise ValidationError(
+        code = "INVALID_YEAR",
+        message = "The FISCAL YEAR SHOULD BE GREATER THAN 1900",
+        details = {"received" :f"{self.fiscal_year}"}
+      )

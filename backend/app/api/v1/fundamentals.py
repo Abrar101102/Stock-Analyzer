@@ -26,18 +26,15 @@ router = APIRouter(
 @router.get("/{symbol}/snapshot",response_model=FundamentalSnapshotV1)
 def get_fundamental_snapshot(symbol:str,fiscal_year:int=Query(...,gt=1900),
 fundamental_service=Depends(get_fundamental_service)):
-  try:
     snapshot = fundamental_service.get_fundamental_snapshot(symbol, fiscal_year)
     return snapshot_to_v1(snapshot)
-  except ValueError as ve:
-    raise HTTPException(status_code=404,detail=str(ve))
-  
+
 @router.get("/{symbol}",response_model=dict[str,list])
 def get_fundamentals(symbol:str,
                      period:str=Query("annual",pattern="^(annual|quaterly)$"),
                      limit:int=Query(5,gt=0,le=20),
                      fundamental_service=Depends(get_fundamental_service)):
-  try:
+    
     fundamentals = fundamental_service.get_fundamentals(symbol,period,limit)
 
     return {
@@ -51,16 +48,13 @@ def get_fundamentals(symbol:str,
         cash_flow_to_v1(x) for x in fundamentals.cash_flows
       ]
     }
-  except ValueError as ve:
-    raise HTTPException(status_code=404,detail=str(ve))
+
     
 
 @router.get("/{symbol}/ratios",response_model=list[RatioV1])
 def get_ratios(symbol:str,
                period:str=Query("annual",pattern="^(annual|quaterly)$"),
               limit:int=Query(5,gt=0,le=20),fundamental_service=Depends(get_fundamental_service)):
-  try:
+    
     ratios = fundamental_service.get_ratios(symbol,period,limit)
     return [ratio_to_v1(r) for r in ratios]
-  except ValueError as ve:
-    raise HTTPException(status_code=404,detail=str(ve))
