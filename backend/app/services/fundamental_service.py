@@ -63,6 +63,12 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     )
 
   def get_fundamental_snapshot(self,symbol:str,fiscal_year:int,period:str="annual") -> FundamentalSnapshotModel:
+
+    logger.info(
+        "Fetching fundamentals Snapshot",
+        extra={"symbol": symbol, "period": period, "fiscal_year":fiscal_year}
+    )
+
     fundamentals = self.get_fundamentals(symbol)
     income_statement = self._select_by_year(fundamentals['income_statements'],fiscal_year)
     balance_sheet = self._select_by_year(fundamentals['balance_sheets'],fiscal_year)
@@ -86,13 +92,28 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     )
 
   def get_fundamentals(self,symbol:str,fiscal_year:int,period:str="annual",limit:int=5) -> dict:
+
+    logger.info(
+        "Fetching fundamentals",
+        extra={"symbol": symbol, "period": period, "limit": limit}
+    )
+    
+
     limit = self._validate_limit(limit)
     symbol = self._normalize_symbol(symbol)
     income_statements= self.provider.get_income_statements(symbol,period)
     balance_sheets = self.provider.get_balance_sheets(symbol,period)
     cash_flows = self.provider.get_cash_flows(symbol,period)
 
-    print(f"After filtering, {len(income_statements)} income statements, {len(balance_sheets)} balance sheets, {len(cash_flows)} cash flow statements remain for symbol {symbol}")
+    logger.debug(
+        "Raw provider counts",
+        extra={
+            "income": len(income_statements),
+            "balance": len(balance_sheets),
+            "cashflow": len(cash_flows)
+        }
+    )
+
     if not income_statements and not balance_sheets and not cash_flows:
       raise NotFoundError(
                 code="FUNDAMENTALS_NOT_FOUND",
@@ -144,9 +165,20 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         continue
       filtered_cash_flows.append(cf)
 
+    logger.info(
+      "Filtered fundamentals",
+      extra={
+        "symbol": symbol,
+        "income_years": filtered_income_statements,
+        "balance_years": filtered_balance_sheets,
+        "cashflow_years": filtered_cash_flows,
+      }
+    )
+
     income_statements = filtered_income_statements
     balance_sheets = filtered_balance_sheets
     cash_flows = filtered_cash_flows
+
 
     
     return {
@@ -157,6 +189,11 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
   
 
   def get_ratios(self,symbol:str,period:str="annual",limit:int=5) -> List[FinancialRatioModel]:
+  
+    logger.info(
+        "Fetching Ratios",
+        extra={"symbol": symbol, "period": period,"limit":limit}
+    )
     limit = self._validate_limit(limit)
     fundamentals = self.get_fundamentals(symbol,period,limit)
     income_statements = fundamentals['income_statements']
@@ -168,6 +205,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     ratio_fiscal_year = []
 
     for inc in income_statements:
+    
       bs = bs_map.get(inc.fiscal_year,None)
       cf = cf_map.get(inc.fiscal_year,None)
 
@@ -203,5 +241,4 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         free_cash_flow = round(free_cash_flow,4) if free_cash_flow else None
         ))
         
-      
     return ratio_fiscal_year

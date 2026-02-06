@@ -7,6 +7,7 @@ def domain_error_handler(request:Request,exc:DomainError):
   status_map = {
     "INVALID_LIMIT":400,
     "INVALID_PERIOD":400,
+    "INVALID_SYMBOL":400,
     "FUNDAMENTALS_NOT_FOUND":404,
     "PROVIDER_ERROR":502
   }

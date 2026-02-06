@@ -54,11 +54,17 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
         models: List[BalanceSheetModel] = []
 
         if df is None or df.empty:
-            logger.warning(f"No balance sheet data for {symbol}")
+            logger.warning(
+                "Yahoo returned empty balance sheet",
+                extra={"symbol": symbol}
+            )
             return models
 
         logger.debug(f"Raw balance sheet rows: {list(df.index)}")
-
+        logger.debug(
+            "Parsed balance sheet year",
+            extra={"symbol": symbol, "fiscal_year": self._year(col)}
+        )
         for col in df.columns:
             models.append(
                 BalanceSheetModel(
@@ -88,10 +94,17 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
         models: List[IncomeStatementModel] = []
 
         if df is None or df.empty:
-            logger.warning(f"No income statement data for {symbol}")
+            logger.warning(
+                "Yahoo returned empty Income sheet",
+                extra={"symbol": symbol}
+            )
             return models
 
         logger.debug(f"Raw income statement rows: {list(df.index)}")
+        logger.debug(
+            "Parsed Income sheet year",
+            extra={"symbol": symbol, "fiscal_year": self._year(col)}
+        )
 
         for col in df.columns:
             models.append(
@@ -117,10 +130,17 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
         models: List[CashFlowStatementModel] = []
 
         if df is None or df.empty:
-            logger.warning(f"No cash flow data for {symbol}")
+            logger.warning(
+                "Yahoo returned empty Cash flows",
+                extra={"symbol": symbol}
+            )
             return models
 
         logger.debug(f"Raw cash flow rows: {list(df.index)}")
+        logger.debug(
+            "Parsed Cash Flow year",
+            extra={"symbol": symbol, "fiscal_year": self._year(col)}
+        )
 
         for col in df.columns:
             models.append(

@@ -17,7 +17,7 @@ class IncomeStatementModel:
   def __post_init__(self):
     if self.fiscal_year < 1900 :
       raise ValidationError(
-        code = "INVALID_YEAR",
+        code = "INVALID_PERIOD",
         message = "The FISCAL YEAR SHOULD BE GREATER THAN 1900",
         details = {"received" :f"{self.fiscal_year}"}
       )

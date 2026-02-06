@@ -5,10 +5,14 @@ from app.api.stock import router as stock_router
 from app.api.v1.fundamentals import router as fundamental_router
 from app.api.exception_handlers import domain_error_handler
 from app.core.exceptions import DomainError
+from app.core.logging import set_up_logging
+from app.middleware.request_context import request_context_middleware
 
 
 app = FastAPI(title="Stock Analyzer")
 
+set_up_logging()
+# await request_context_middleware
 app.add_exception_handler(DomainError,domain_error_handler)
 app.add_middleware(
   CORSMiddleware,
