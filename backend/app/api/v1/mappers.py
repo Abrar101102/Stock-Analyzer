@@ -68,6 +68,6 @@ def ratio_to_v1(financialratio:FinancialRatioModel)->RatioV1:
     net_margin=financialratio.net_margin,
     current_ratio=financialratio.current_ratio,
     debt_to_equity=financialratio.debt_to_equity,
-    ofc_quality=financialratio.ocf_quality,
+    ocf_quality=financialratio.ocf_quality,
     free_cash_flow=financialratio.free_cash_flow
   )

@@ -2,7 +2,7 @@ from app.fundamentals.data_providers.base_fundamental_provider import BaseFundam
 from app.fundamentals.models.financial_ratio_model import FinancialRatioModel
 from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapshotModel
 from app.registry.stock_registry import StockRegistry
-from core.exceptions import ValidationError,NotFoundError
+from app.core.exceptions import ValidationError,NotFoundError
 from typing import List
 import logging
 
@@ -49,7 +49,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         message = "Limit Must be Provided",
         details = {"received":None} 
       )
-    if not instance(limit,int):
+    if not isinstance(limit,int):
       raise ValidationError(
         code = "INVALID_LIMIT",
         message = "Limit Must be of Type Integer",

@@ -12,7 +12,7 @@ from app.middleware.request_context import request_context_middleware
 app = FastAPI(title="Stock Analyzer")
 
 set_up_logging()
-# await request_context_middleware
+app.middleware("http")(request_context_middleware)
 app.add_exception_handler(DomainError,domain_error_handler)
 app.add_middleware(
   CORSMiddleware,

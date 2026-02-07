@@ -61,11 +61,12 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             return models
 
         logger.debug(f"Raw balance sheet rows: {list(df.index)}")
-        logger.debug(
+        
+        for col in df.columns:
+            logger.debug(
             "Parsed balance sheet year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
-        for col in df.columns:
             models.append(
                 BalanceSheetModel(
                     symbol=symbol,
@@ -101,12 +102,13 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             return models
 
         logger.debug(f"Raw income statement rows: {list(df.index)}")
-        logger.debug(
+       
+
+        for col in df.columns:
+            logger.debug(
             "Parsed Income sheet year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
-
-        for col in df.columns:
             models.append(
                 IncomeStatementModel(
                     symbol=symbol,
@@ -137,12 +139,13 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             return models
 
         logger.debug(f"Raw cash flow rows: {list(df.index)}")
-        logger.debug(
+        
+
+        for col in df.columns:
+            logger.debug(
             "Parsed Cash Flow year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
-
-        for col in df.columns:
             models.append(
                 CashFlowStatementModel(
                     symbol=symbol,
