@@ -2,17 +2,20 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.health import router as health_router
 from app.api.stock import router as stock_router
+from app.api.metrics import router as metrics_router
 from app.api.v1.fundamentals import router as fundamental_router
 from app.api.exception_handlers import domain_error_handler
 from app.core.exceptions import DomainError
 from app.core.logging import set_up_logging
 from app.middleware.request_context import request_context_middleware
+from app.middleware.metrics import metrics_middleware
 
 
 app = FastAPI(title="Stock Analyzer")
 
 set_up_logging()
 app.middleware("http")(request_context_middleware)
+app.middleware("http")(metrics_middleware)
 app.add_exception_handler(DomainError,domain_error_handler)
 app.add_middleware(
   CORSMiddleware,
@@ -22,8 +25,8 @@ app.add_middleware(
   allow_headers=["*"],
 )
 
-routes_under_api = [stock_router,fundamental_router]
-app.include_router(health_router)
+routes_under_api = [stock_router,fundamental_router,metrics_router,health_router]
+# app.include_router(health_router)
 # app.include_router(stock_router,prefix="/api")
 for route in routes_under_api:
   app.include_router(route,prefix="/api")
