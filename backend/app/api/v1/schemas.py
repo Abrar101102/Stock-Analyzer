@@ -1,3 +1,8 @@
+# WARNING:
+# This schema is part of the public API v1 contract.
+# Do NOT rename, remove, or change field meanings.
+# Breaking changes require /v2.
+
 from dataclasses import dataclass
 from typing import Optional
 

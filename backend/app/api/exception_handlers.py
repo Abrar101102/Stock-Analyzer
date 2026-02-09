@@ -8,6 +8,10 @@ def domain_error_handler(request:Request,exc:DomainError):
     "INVALID_LIMIT":400,
     "INVALID_PERIOD":400,
     "INVALID_SYMBOL":400,
+    "FISCALYEAR_MISMATCH":400,
+    "ORDERING_VIOLATION":400,
+    "API_KEY_MISSING":401,
+    "INVALID_API_KEY":403,
     "FUNDAMENTALS_NOT_FOUND":404,
     "PROVIDER_ERROR":502
   }

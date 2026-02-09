@@ -3,6 +3,8 @@ from app.fundamentals.models.financial_ratio_model import FinancialRatioModel
 from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapshotModel
 from app.registry.stock_registry import StockRegistry
 from app.core.exceptions import ValidationError,NotFoundError
+from app.fundamentals.validation.provider_sanity import assert_valid_fiscal_year
+
 from typing import List
 import logging
 
@@ -62,6 +64,15 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       (m for m in models if m.fiscal_year == fiscal_year),None
     )
 
+  def _assert_sorted_desc(self,items):
+    years = [x.fiscal_year for x in items]
+    if years != sorted(years,reverse= True):
+      raise ValidationError(
+        code = "ORDERING_VIOLATION",
+        message= "Fiscal Year Ordering Violation",
+        details={"recieved":f"years {years} and sorted years {sorted(years,reverse=True)}"}
+      )
+    
   def get_fundamental_snapshot(self,symbol:str,fiscal_year:int,period:str="annual") -> FundamentalSnapshotModel:
 
     logger.info(
@@ -73,6 +84,18 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     income_statement = self._select_by_year(fundamentals['income_statements'],fiscal_year)
     balance_sheet = self._select_by_year(fundamentals['balance_sheets'],fiscal_year)
     cash_flow = self._select_by_year(fundamentals['cash_flows'],fiscal_year)
+
+    fy = income_statement.fiscal_year
+
+    if balance_sheet.fiscal_year != fy or cash_flow.fiscal_year != fy:
+      raise ValidationError(
+        code= "FISCALYEAR_MISMATCH",
+        message = f"Snapshot Fiscal Year Mismatch for symbol {symbol}",
+        details={
+          "received": f"Income Sheet Fiscal Year {fy}, Balance sheet Fiscal Year {balance_sheet.fiscal_year} and cash Flow Fiscal Year {cash_flow.fiscal_year}"
+        }
+      )
+
     if not income_statement or not balance_sheet or not cash_flow:raise NotFoundError(
                 code="FUNDAMENTALS_NOT_FOUND",
                 message=f"No fundamentals found for symbol {symbol}"
@@ -91,6 +114,8 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       shareholders_equity = balance_sheet.shareholders_equity
     )
 
+  
+
   def get_fundamentals(self,symbol:str,fiscal_year:int,period:str="annual",limit:int=5) -> dict:
 
     logger.info(
@@ -98,9 +123,9 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         extra={"symbol": symbol, "period": period, "limit": limit}
     )
     
-
     limit = self._validate_limit(limit)
     symbol = self._normalize_symbol(symbol)
+
     income_statements= self.provider.get_income_statements(symbol,period)
     balance_sheets = self.provider.get_balance_sheets(symbol,period)
     cash_flows = self.provider.get_cash_flows(symbol,period)
@@ -141,6 +166,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     filtered_cash_flows = []
 
     for inc in income_statements:
+      assert_valid_fiscal_year(inc.fiscal_year,symbol)
       if inc.fiscal_year is None:
         logger.warning(f"Income statement data missing fiscal year for symbol: {symbol}")
         continue
@@ -149,7 +175,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       filtered_income_statements.append(inc)
 
     for bs in balance_sheets:
-      print(bs)
+      assert_valid_fiscal_year(bs.fiscal_year,symbol)
       if bs.fiscal_year is None:
         logger.warning(f"Balance sheet data missing fiscal year for symbol: {symbol}")
         continue
@@ -158,6 +184,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       filtered_balance_sheets.append(bs)
     
     for cf in cash_flows:
+      assert_valid_fiscal_year(cf.fiscal_year,symbol)
       if cf.fiscal_year is None:
         logger.warning(f"Cash flow data missing fiscal year for symbol: {symbol}")
         continue
@@ -179,12 +206,14 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     balance_sheets = filtered_balance_sheets
     cash_flows = filtered_cash_flows
 
-
+    income_sorted = self._assert_sorted_desc(income_statements)
+    balance_sorted = self._assert_sorted_desc(balance_sheets)
+    cashflows_sorted = self._assert_sorted_desc(cash_flows)
     
     return {
-      "income_statements": sorted(income_statements,key = lambda x:x.fiscal_year,reverse=True)[:limit],
-      "balance_sheets": sorted(balance_sheets,key = lambda x:x.fiscal_year,reverse=True)[:limit],
-      "cash_flows": sorted(cash_flows,key = lambda x:x.fiscal_year,reverse=True)[:limit]
+      "income_statements":income_sorted[:limit],
+      "balance_sheets": balance_sorted[:limit],
+      "cash_flows": cashflows_sorted[:limit]
     }
   
 
