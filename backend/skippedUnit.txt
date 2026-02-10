@@ -1,0 +1,25 @@
+▶ 6.12 – Caching Strategy
+
+Snapshot caching by (symbol, fiscal_year)
+
+Provider-call deduplication
+
+TTL rules for financial data
+
+Cache invalidation philosophy (important)
+
+▶ 6.13 – Multi-provider fallback
+
+Yahoo → fallback provider
+
+Partial data survival
+
+Confidence flags
+
+▶ 6.14 – API hardening
+
+Timeouts
+
+Circuit breakers
+
+Provider degradation handling
