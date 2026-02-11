@@ -1,0 +1,124 @@
+For Fundamentals (Phase 1), we will store:
+
+A. Raw Financial Statement Snapshots
+
+Income Statement
+
+Balance Sheet
+
+Cash Flow
+
+Ratios (if derived from statements → may compute later)
+
+Each stored as:
+
+Symbol
+
+Fiscal Year / Fiscal Period
+
+Filing Date
+
+Version
+
+Statement Type
+
+Data payload
+
+Metadata
+
+---------------------------------
+
+If a company files a correction:
+→ New version row.
+
+Versioned:
+Primary identity is NOT just:
+(symbol, fiscal_year)
+
+
+It becomes:
+(symbol, fiscal_year, filing_date)
+
+Or internally:
+(symbol, fiscal_year, version)
+---------------------------------
+
+Filing date is canonical time
+We store:
+
+filing_date → when company disclosed
+
+ingestion_time → when we fetched
+
+Analytics use filing_date.
+
+Idempotent writes:
+If the same filing is fetched twice:
+
+No duplicate row
+
+No corruption
+
+No new version unless filing_date differs
+
+---------------------------------
+The Core Table Structure (Conceptual)
+
+fundamental_snapshots
+----------------------
+id (uuid)
+symbol
+statement_type
+fiscal_year
+fiscal_period
+filing_date
+version
+data (JSONB)
+source
+ingestion_time
+created_at
+
+---------------------------------
+
+Read Strategy Blueprint
+
+When analytics ask:
+
+“Give me fundamentals for FY2023”
+
+We do NOT just fetch latest row.
+
+We must define:
+
+A) Latest version of FY
+OR
+B) Latest filing BEFORE a certain date
+
+(for backtesting)
+
+Example:
+
+get_fundamental_as_of(symbol, fiscal_year, as_of_date)
+
+This prevents lookahead bias.
+
+---------------------------------
+
+Write Flow Blueprint
+
+The ingestion pipeline will be:
+
+Provider
+   ↓
+Normalizer
+   ↓
+Version Resolver
+   ↓
+Repository Save
+
+The service does NOT:
+-Decide version blindly
+-Overwrite blindly
+-Skip integrity checks
+
+The repository enforces constraints.
