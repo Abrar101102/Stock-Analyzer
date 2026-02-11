@@ -122,3 +122,64 @@ The service does NOT:
 -Skip integrity checks
 
 The repository enforces constraints.
+
+---------------------------------
+
+Choosen Database = Postgresql
+
+SQLite                     PostgreSQL
+	                  
+File-based	               Server-based
+No user roles	            Role-based security
+Limited concurrency	      High concurrency
+Not ideal for scale	      Production-grade
+Weak indexing flexibility	Advanced indexing
+
+For a serious financial backend:
+
+SQLite is for prototypes
+PostgreSQL is for systems
+
+----------------------------------
+
+PostgreSQL setup 
+ 
+1.https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
+2.version 18.1 windows x86-64
+3.Installed location D drive
+4.password : **********
+5.port 5432
+6.Locale Used by the new database cluster is DEFAULT
+
+Installation Directory: D:\PostgreSQL
+Server Installation Directory: D:\PostgreSQL
+Data Directory: D:\PostgreSQL\data
+Database Port: 5432
+Database Superuser: postgres
+Operating System Account: NT AUTHORITY\NetworkService
+Database Service: postgresql-x64-18
+Command Line Tools Installation Directory: D:\PostgreSQL
+pgAdmin4 Installation Directory: D:\PostgreSQL\pgAdmin 4
+Stack Builder Installation Directory: D:\PostgreSQL
+Installation Log: C:\Users\ABRAR\AppData\Local\Temp\install-postgresql.log
+
+
+Database : stock_analyzer;
+
+Created a dedicated user:
+CREATE USER stock_user WITH PASSWORD 'your_password_here';
+
+Granted privileges:
+GRANT ALL PRIVILEGES ON DATABASE stock_analyzer TO stock_user;
+
+
+Inside backend virtual environment:
+
+pip install sqlalchemy psycopg2-binary alembic
+
+
+SQLAlchemy → ORM
+
+psycopg2 → PostgreSQL driver
+
+Alembic → migrations (very important)
