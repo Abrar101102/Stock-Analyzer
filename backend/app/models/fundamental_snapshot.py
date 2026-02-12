@@ -1,0 +1,15 @@
+from dataclasses import dataclass
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column,Date,Integer,String,DateTime,JSON
+
+Base = declarative_base()
+
+class FundamentalSnapshot(Base):
+  __tablename__= "fundamenatal_snapshot"
+
+  id =  Column(id,primary_key=True)
+  symbol = Column(String,index=True)
+  fiscal_year=Column(Integer)
+  filing_date= Column(Date)
+  ingestion_time = Column(DateTime)
+  data = Column(JSON)
