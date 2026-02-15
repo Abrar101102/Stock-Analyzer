@@ -29,7 +29,7 @@ router = APIRouter(
   tags=['Fundamentals v1']
   )
 
-@router.get("/{symbol}/snapshot",depenpencies = [Depends(require_api_key),Depends(rate_limit("snapshot"))],response_model=FundamentalSnapshotV1)
+@router.get("/{symbol}/snapshot",dependencies = [Depends(require_api_key),Depends(rate_limit("snapshot"))],response_model=FundamentalSnapshotV1)
 def get_fundamental_snapshot(response:Response,symbol:str,fiscal_year:int=Query(...,gt=1900),
     fundamental_service=Depends(get_fundamental_service)):
 
@@ -39,7 +39,7 @@ def get_fundamental_snapshot(response:Response,symbol:str,fiscal_year:int=Query(
     response.headers["X-RateLimit-Remaining"]= 59
     return snapshot_to_v1(snapshot)
 
-@router.get("/{symbol}",depenpencies = [Depends(require_api_key),Depends(rate_limit("fundamentals"))],response_model=dict[str,list])
+@router.get("/{symbol}",dependencies = [Depends(require_api_key),Depends(rate_limit("fundamentals"))],response_model=dict[str,list])
 def get_fundamentals(response:Response,symbol:str,period:str=Query("annual",pattern="^(annual|quaterly)$"),
     limit:int=Query(5,gt=0,le=20),fundamental_service=Depends(get_fundamental_service)):
 
@@ -66,7 +66,7 @@ def get_fundamentals(response:Response,symbol:str,period:str=Query("annual",patt
 
     
 
-@router.get("/{symbol}/ratios",depenpencies = [Depends(require_pro_key),Depends(rate_limit("ratios"))],response_model=list[RatioV1])
+@router.get("/{symbol}/ratios",dependencies = [Depends(require_pro_key),Depends(rate_limit("ratios"))],response_model=list[RatioV1])
 def get_ratios(response:Response,symbol:str,period:str=Query("annual",pattern="^(annual|quaterly)$"),
     limit:int=Query(5,gt=0,le=20),fundamental_service=Depends(get_fundamental_service)):
 

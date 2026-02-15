@@ -1,5 +1,6 @@
 from typing import Optional,Literal
 from dataclasses import dataclass
+from datetime import date
 
 periodType = Literal["annual","quarterly"]
 @dataclass
@@ -11,6 +12,7 @@ class BalanceSheetModel:
   symbol : str
   period : periodType
   fiscal_year : int
+  filing_date : date
   # Assets
   total_assets : Optional[float] = None
   current_assets : Optional[float] = None

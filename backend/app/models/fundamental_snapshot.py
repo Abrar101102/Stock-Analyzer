@@ -7,7 +7,7 @@ Base = declarative_base()
 class FundamentalSnapshot(Base):
   __tablename__= "fundamenatal_snapshot"
 
-  id =  Column(id,primary_key=True)
+  id =  Column(Integer,primary_key=True,autoincrement=True)
   symbol = Column(String,index=True)
   fiscal_year=Column(Integer)
   filing_date= Column(Date)

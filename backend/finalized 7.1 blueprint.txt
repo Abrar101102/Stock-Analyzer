@@ -183,3 +183,31 @@ SQLAlchemy → ORM
 psycopg2 → PostgreSQL driver
 
 Alembic → migrations (very important)
+
+Provider = API call
+Persistence = Time machine
+
+If you don't store:
+
+You cannot time-travel.
+
+And in finance,
+time-travel correctness = everything.
+
+🚀 Final Realization
+
+You are not building this DB layer because provider is insufficient.
+
+You are building it because:
+
+Markets revise filings.
+
+Data vendors restate numbers.
+
+APIs change.
+
+Companies amend reports.
+
+And professional systems must preserve:
+
+“What was known when.”

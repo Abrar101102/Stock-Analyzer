@@ -63,15 +63,18 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
         logger.debug(f"Raw balance sheet rows: {list(df.index)}")
         
         for col in df.columns:
+            
             logger.debug(
             "Parsed balance sheet year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
+            filing_date = col.date()
             models.append(
                 BalanceSheetModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
+                    filing_date= filing_date,
                     total_assets=self._get(df, "Total Assets", col),
                     current_assets=self._get(df, "Current Assets", col),
                     cash_and_equivalents=self._get(df, "Cash And Cash Equivalents", col),
@@ -109,11 +112,13 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             "Parsed Income sheet year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
+            filing_date = col.date()
             models.append(
                 IncomeStatementModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
+                    filing_date=filing_date,
                     total_revenue=self._get(df, "Total Revenue", col),
                     operating_income=self._get(df, "Operating Income", col),
                     net_income=self._get(df, "Net Income", col),
@@ -146,11 +151,13 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             "Parsed Cash Flow year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
+            filing_date = col.date()
             models.append(
                 CashFlowStatementModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
+                    filing_date=filing_date,
                     operating_cash_flow=self._get(df, "Operating Cash Flow", col),
                     capital_expenditure=self._get(df, "Capital Expenditure", col),
                     net_cash_flow=self._get(df, "Free Cash Flow", col),

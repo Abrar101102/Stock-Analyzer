@@ -72,7 +72,8 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         message= "Fiscal Year Ordering Violation",
         details={"recieved":f"years {years} and sorted years {sorted(years,reverse=True)}"}
       )
-    
+    # print(years)
+    return items
   def get_fundamental_snapshot(self,symbol:str,fiscal_year:int,period:str="annual") -> FundamentalSnapshotModel:
 
     logger.info(
@@ -80,7 +81,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         extra={"symbol": symbol, "period": period, "fiscal_year":fiscal_year}
     )
 
-    fundamentals = self.get_fundamentals(symbol)
+    fundamentals = self.get_fundamentals(symbol,fiscal_year)
     income_statement = self._select_by_year(fundamentals['income_statements'],fiscal_year)
     balance_sheet = self._select_by_year(fundamentals['balance_sheets'],fiscal_year)
     cash_flow = self._select_by_year(fundamentals['cash_flows'],fiscal_year)
@@ -100,11 +101,18 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
                 code="FUNDAMENTALS_NOT_FOUND",
                 message=f"No fundamentals found for symbol {symbol}"
             )
+    
+    if income_statement.filing_date != balance_sheet.filing_date or income_statement.filing_date != cash_flow.filing_date:
+      raise ValidationError(
+        code ="NO_FILING_DATE",
+        message=f"No Filing Date Was found for {symbol}"
+      ) 
 
     return FundamentalSnapshotModel(
       symbol = self._normalize_symbol(symbol),
       period = period,
       fiscal_year = income_statement.fiscal_year,
+      filing_date = income_statement.filing_date,
       total_revenue = income_statement.total_revenue,
       net_income = income_statement.net_income,
       eps = income_statement.eps,

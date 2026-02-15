@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional,Literal
+from datetime import date
 
 periodType = Literal["annual","quarterly"]
 
@@ -11,6 +12,7 @@ class CashFlowStatementModel:
   symbol:str
   period:periodType
   fiscal_year:int
+  filing_date:date
   # operating cash flow
   operating_cash_flow : Optional[float] = None
   # Investing Cash Flow

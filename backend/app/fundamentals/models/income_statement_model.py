@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from app.core.exceptions import ValidationError
 from typing import Optional,Literal
+from datetime import date
 
 periodType = Literal["annual","quarterly"]
 
@@ -9,6 +10,7 @@ class IncomeStatementModel:
   symbol:str
   period:periodType
   fiscal_year:int
+  filing_date:date
   total_revenue: Optional[float] = None
   operating_income:Optional[float] = None
   net_income:Optional[float] = None
