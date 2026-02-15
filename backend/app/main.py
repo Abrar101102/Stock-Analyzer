@@ -4,6 +4,7 @@ from app.api.health import router as health_router
 from app.api.stock import router as stock_router
 from app.api.metrics import router as metrics_router
 from app.api.v1.fundamentals import router as fundamental_router
+from app.api.internal.fundamental_persistance import router as ingest_router
 from app.api.exception_handlers import domain_error_handler
 from app.core.exceptions import DomainError
 from app.core.logging import set_up_logging
@@ -25,7 +26,7 @@ app.add_middleware(
   allow_headers=["*"],
 )
 
-routes_under_api = [stock_router,fundamental_router,metrics_router,health_router]
+routes_under_api = [stock_router,fundamental_router,ingest_router,metrics_router,health_router]
 # app.include_router(health_router)
 # app.include_router(stock_router,prefix="/api")
 for route in routes_under_api:

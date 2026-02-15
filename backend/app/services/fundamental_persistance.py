@@ -5,6 +5,7 @@ from app.core.exceptions import ValidationError,NotFoundError
 class FundamentalPersistanceProvider:
 
   def ingest_fundamental_snapshot(
+      self,
       db:Session,
       symbol:str,
       fiscal_year:int,
@@ -37,7 +38,7 @@ class FundamentalPersistanceProvider:
       data=data
     )
   
-  def fetch_latest(db:Session,symbol:str,fiscal_year:int):
+  def fetch_latest(self,db:Session,symbol:str,fiscal_year:int):
 
     snapshot = get_latest_snapshot(db,symbol,fiscal_year)
 
@@ -49,7 +50,7 @@ class FundamentalPersistanceProvider:
     
     return snapshot
   
-  def fetch_as_of(db:Session,symbol:str,fiscal_year:int,as_of_date:date):
+  def fetch_as_of(self,db:Session,symbol:str,fiscal_year:int,as_of_date:date):
     snapshot = get_snapshot_as_of(db,symbol,fiscal_year,as_of_date)
 
     if not snapshot:

@@ -14,3 +14,5 @@ def rate_limit(rule_name:str):
         key = f"{client_ip}:{path}"
 
         limiter.check(key = key, limit = rule["requests"],window=rule["window_seconds"])
+    
+    return dependency
