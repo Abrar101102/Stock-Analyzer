@@ -3,6 +3,7 @@ from app.fundamentals.models.balance_sheet_model import BalanceSheetModel
 from app.fundamentals.models.income_statement_model import IncomeStatementModel
 from app.fundamentals.models.cash_flow_model import CashFlowStatementModel
 
+from datetime import date
 import yfinance as yf
 from typing import List
 import pandas as pd
@@ -44,11 +45,22 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
         Extract fiscal year from column (Timestamp or int)
         """
         return col.year if hasattr(col, "year") else int(col)
+    
+    def get_ticker_and_earning(self,symbol):
+        ticker = yf.Ticker(symbol)
+        earnings_df = ticker.get_earnings_dates(limit=8)
+        earnings_map = {}
 
+        if earnings_df is not None and not earnings_df.empty:
+            # print("Earnings DF",earnings_df)
+            for dt in earnings_df.index:
+                fy = dt.year - 1
+                earnings_map[fy] = dt.date()
+        return ticker,earnings_map
     # ---------- BALANCE SHEET ----------
 
     def get_balance_sheets(self, symbol: str, period: str = "annual") -> List[BalanceSheetModel]:
-        ticker = yf.Ticker(symbol)
+        ticker,earnings_map = self.get_ticker_and_earning(symbol)
         df = ticker.balance_sheet
 
         models: List[BalanceSheetModel] = []
@@ -68,7 +80,9 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             "Parsed balance sheet year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
-            filing_date = col.date()
+            fy = self._year(col)
+            filing_date = earnings_map.get(fy,date.today())
+            print(f"filing date {filing_date}")
             models.append(
                 BalanceSheetModel(
                     symbol=symbol,
@@ -92,7 +106,7 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
     # ---------- INCOME STATEMENT ----------
 
     def get_income_statements(self, symbol: str, period: str = "annual") -> List[IncomeStatementModel]:
-        ticker = yf.Ticker(symbol)
+        ticker,earnings_map = self.get_ticker_and_earning(symbol)
         df = ticker.financials
 
         models: List[IncomeStatementModel] = []
@@ -112,7 +126,8 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             "Parsed Income sheet year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
-            filing_date = col.date()
+            fy = self._year(col)
+            filing_date = earnings_map.get(fy,date.today())
             models.append(
                 IncomeStatementModel(
                     symbol=symbol,
@@ -131,7 +146,7 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
     # ---------- CASH FLOW ----------
 
     def get_cash_flows(self, symbol: str, period: str = "annual") -> List[CashFlowStatementModel]:
-        ticker = yf.Ticker(symbol)
+        ticker,earnings_map = self.get_ticker_and_earning(symbol)
         df = ticker.cashflow
 
         models: List[CashFlowStatementModel] = []
@@ -151,7 +166,8 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             "Parsed Cash Flow year",
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
-            filing_date = col.date()
+            fy = self._year(col)
+            filing_date = earnings_map.get(fy,date.today())
             models.append(
                 CashFlowStatementModel(
                     symbol=symbol,

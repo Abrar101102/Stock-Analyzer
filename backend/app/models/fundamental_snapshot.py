@@ -5,7 +5,7 @@ from sqlalchemy import Column,Date,Integer,String,DateTime,JSON
 Base = declarative_base()
 
 class FundamentalSnapshot(Base):
-  __tablename__= "fundamenatal_snapshot"
+  __tablename__= "fundamental_snapshot"
 
   id =  Column(Integer,primary_key=True,autoincrement=True)
   symbol = Column(String,index=True)

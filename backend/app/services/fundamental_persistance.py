@@ -13,7 +13,7 @@ class FundamentalPersistanceProvider:
       data:dict
   ):
     #validation 
-    if filing_date<date.today():
+    if filing_date>date.today():
       raise ValidationError(
         code = "INVALID_FILING_DATE",
         message="Filing Date Cannot be in the future"
