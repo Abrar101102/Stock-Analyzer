@@ -1,6 +1,6 @@
 from typing import Dict
 from app.models.stock import StockSymbol
-
+from app.core.exceptions import NotFoundError
 # Registry is responsible for Is this symbol allowed and what does it represent?
 
 class StockRegistry:
@@ -29,6 +29,11 @@ class StockRegistry:
   def get_stock(cls,symbol)->  StockSymbol:
     print("Fetching stock for symbol:",symbol)
     normalized = symbol.upper().strip()
+    if normalized not in cls._stocks:
+      raise NotFoundError(
+        code="STOCK_NOT_FOUND",
+        message=f"Stock with symbol '{symbol}' not found in registry"
+      )
     return cls._stocks[normalized]
   
   @classmethod

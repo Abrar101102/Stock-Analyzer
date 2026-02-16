@@ -10,8 +10,11 @@ from app.core.exceptions import DomainError
 from app.core.logging import set_up_logging
 from app.middleware.request_context import request_context_middleware
 from app.middleware.metrics import metrics_middleware
+from app.models.fundamental_snapshot import FundamentalSnapshot,Base
+from app.scheduler import start_scheduler
+from app.db.session import engine
 
-
+Base.metadata.create_all(bind=engine)# Responsible for creating Table if not created
 app = FastAPI(title="Stock Analyzer")
 
 set_up_logging()
@@ -31,6 +34,10 @@ routes_under_api = [stock_router,fundamental_router,ingest_router,metrics_router
 # app.include_router(stock_router,prefix="/api")
 for route in routes_under_api:
   app.include_router(route,prefix="/api")
+
+@app.on_event("startup")
+def startup_event():
+  start_scheduler()
 # app.include_router(fundamental_router,prefix="/api")
 # @app.get("/health")
 # def health_check():

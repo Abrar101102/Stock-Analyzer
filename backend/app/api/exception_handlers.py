@@ -13,6 +13,7 @@ def domain_error_handler(request:Request,exc:DomainError):
     "SNAPSHOT_NOT_FOUND":400,
     "EMPTY_DATA":400,
     "NO_FILING_DATE":400,
+    "STOCK_NOT_FOUND":404,
     "INVALID_FILING_DATE":400,
     "API_KEY_MISSING":401,
     "INVALID_API_KEY":403,
