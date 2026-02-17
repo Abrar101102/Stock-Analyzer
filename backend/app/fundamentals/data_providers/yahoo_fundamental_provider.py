@@ -54,6 +54,7 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
         if earnings_df is not None and not earnings_df.empty:
             # print("Earnings DF",earnings_df)
             for dt in earnings_df.index:
+                # Todo: Improve fiscal year mapping logic
                 fy = dt.year - 1
                 earnings_map[fy] = dt.date()
         return ticker,earnings_map
@@ -81,14 +82,14 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
             fy = self._year(col)
-            filing_date = earnings_map.get(fy,date.today())
-            print(f"filing date {filing_date}")
+            effective_date = earnings_map.get(fy,date.today())
+            print(f"filing date {effective_date}")
             models.append(
                 BalanceSheetModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
-                    filing_date= filing_date,
+                    effective_date= effective_date,
                     total_assets=self._get(df, "Total Assets", col),
                     current_assets=self._get(df, "Current Assets", col),
                     cash_and_equivalents=self._get(df, "Cash And Cash Equivalents", col),
@@ -127,13 +128,13 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
             fy = self._year(col)
-            filing_date = earnings_map.get(fy,date.today())
+            effective_date = earnings_map.get(fy,date.today())
             models.append(
                 IncomeStatementModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
-                    filing_date=filing_date,
+                    effective_date=effective_date,
                     total_revenue=self._get(df, "Total Revenue", col),
                     operating_income=self._get(df, "Operating Income", col),
                     net_income=self._get(df, "Net Income", col),
@@ -167,13 +168,13 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
             fy = self._year(col)
-            filing_date = earnings_map.get(fy,date.today())
+            effective_date = earnings_map.get(fy,date.today())
             models.append(
                 CashFlowStatementModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
-                    filing_date=filing_date,
+                    effective_date=effective_date,
                     operating_cash_flow=self._get(df, "Operating Cash Flow", col),
                     capital_expenditure=self._get(df, "Capital Expenditure", col),
                     net_cash_flow=self._get(df, "Free Cash Flow", col),

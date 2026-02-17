@@ -16,7 +16,7 @@ class FundamentalSnapshotModel:
     symbol: str
     period: periodType
     fiscal_year: int
-    filing_date : date
+    effective_date : date
     # Full statements (compositon)
     # income_statement : Optional[IncomeStatementModel]
     # cash_flow_statement : Optional[CashFlowStatementModel]

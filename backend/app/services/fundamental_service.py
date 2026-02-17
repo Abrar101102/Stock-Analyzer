@@ -102,7 +102,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
                 message=f"No fundamentals found for symbol {symbol}"
             )
     
-    if income_statement.filing_date != balance_sheet.filing_date or income_statement.filing_date != cash_flow.filing_date:
+    if income_statement.effective_date != balance_sheet.effective_date or income_statement.effective_date != cash_flow.effective_date:
       raise ValidationError(
         code ="NO_FILING_DATE",
         message=f"No Filing Date Was found for {symbol}"
@@ -112,7 +112,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       symbol = self._normalize_symbol(symbol),
       period = period,
       fiscal_year = income_statement.fiscal_year,
-      filing_date = income_statement.filing_date,
+      effective_date = income_statement.effective_date,
       total_revenue = income_statement.total_revenue,
       net_income = income_statement.net_income,
       eps = income_statement.eps,

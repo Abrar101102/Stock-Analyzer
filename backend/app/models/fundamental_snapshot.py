@@ -10,6 +10,6 @@ class FundamentalSnapshot(Base):
   id =  Column(Integer,primary_key=True,autoincrement=True)
   symbol = Column(String,index=True)
   fiscal_year=Column(Integer)
-  filing_date= Column(Date)
+  effective_date= Column(Date)
   ingestion_time = Column(DateTime)
   data = Column(JSON)

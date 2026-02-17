@@ -37,7 +37,7 @@ Primary identity is NOT just:
 
 
 It becomes:
-(symbol, fiscal_year, filing_date)
+(symbol, fiscal_year, effective_date)
 
 Or internally:
 (symbol, fiscal_year, version)
@@ -46,11 +46,11 @@ Or internally:
 Filing date is canonical time
 We store:
 
-filing_date → when company disclosed
+effective_date → when company disclosed
 
 ingestion_time → when we fetched
 
-Analytics use filing_date.
+Analytics use effective_date.
 
 Idempotent writes:
 If the same filing is fetched twice:
@@ -59,7 +59,7 @@ No duplicate row
 
 No corruption
 
-No new version unless filing_date differs
+No new version unless effective_date differs
 
 ---------------------------------
 The Core Table Structure (Conceptual)
@@ -71,7 +71,7 @@ symbol
 statement_type
 fiscal_year
 fiscal_period
-filing_date
+effective_date
 version
 data (JSONB)
 source

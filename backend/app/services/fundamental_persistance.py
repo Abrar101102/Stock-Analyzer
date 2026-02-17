@@ -9,11 +9,11 @@ class FundamentalPersistanceProvider:
       db:Session,
       symbol:str,
       fiscal_year:int,
-      filing_date:date,
+      effective_date:date,
       data:dict
   ):
     #validation 
-    if filing_date>date.today():
+    if effective_date>date.today():
       raise ValidationError(
         code = "INVALID_FILING_DATE",
         message="Filing Date Cannot be in the future"
@@ -27,14 +27,14 @@ class FundamentalPersistanceProvider:
     
     existing = get_latest_snapshot(db,symbol,fiscal_year)
 
-    if existing and existing.filing_date == filing_date and existing.data == data:
+    if existing and existing.effective_date == effective_date and existing.data == data:
       return existing
     
     return save_snapshot(
       db=db,
       symbol=symbol,
       fiscal_year=fiscal_year,
-      filing_date=filing_date,
+      effective_date=effective_date,
       data=data
     )
   

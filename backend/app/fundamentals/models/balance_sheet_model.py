@@ -12,7 +12,7 @@ class BalanceSheetModel:
   symbol : str
   period : periodType
   fiscal_year : int
-  filing_date : date
+  effective_date : date
   # Assets
   total_assets : Optional[float] = None
   current_assets : Optional[float] = None

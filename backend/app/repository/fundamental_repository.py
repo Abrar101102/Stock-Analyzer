@@ -6,13 +6,13 @@ def save_snapshot(
     db:Session,
     symbol:str,
     fiscal_year:int,
-    filing_date,
+    effective_date,
     data:dict
 ):
   snapshot = FundamentalSnapshot(
     symbol = symbol,
     fiscal_year= fiscal_year,
-    filing_date=filing_date,
+    effective_date=effective_date,
     ingestion_time= datetime.now(),
     data=data
   )
@@ -48,8 +48,8 @@ def get_snapshot_as_of(
     .filter(
       FundamentalSnapshot.symbol == symbol,
       FundamentalSnapshot.fiscal_year == fiscal_year,
-      FundamentalSnapshot.filing_date <= as_of_date 
+      FundamentalSnapshot.effective_date <= as_of_date 
     )
-    .order_by(FundamentalSnapshot.filing_date.desc())
+    .order_by(FundamentalSnapshot.effective_date.desc())
     .first()
   )

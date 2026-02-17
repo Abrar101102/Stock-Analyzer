@@ -10,7 +10,7 @@ class IncomeStatementModel:
   symbol:str
   period:periodType
   fiscal_year:int
-  filing_date:date
+  effective_date:date
   total_revenue: Optional[float] = None
   operating_income:Optional[float] = None
   net_income:Optional[float] = None

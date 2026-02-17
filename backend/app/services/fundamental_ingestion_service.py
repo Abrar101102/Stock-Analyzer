@@ -20,12 +20,12 @@ class FundamentalIngestionService:
 
     snapshot_dict = asdict(snapshot)
     data_dict = json.dumps(snapshot_dict, default=self.json_serial)
-    filing_date = snapshot.filing_date
+    effective_date = snapshot.effective_date
 
     return self.persistance_service.ingest_fundamental_snapshot(
       db=db,
       symbol=symbol,
       fiscal_year=fiscal_year,
-      filing_date=filing_date,
+      effective_date=effective_date,
       data=data_dict
     )

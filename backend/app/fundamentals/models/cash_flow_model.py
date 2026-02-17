@@ -12,7 +12,7 @@ class CashFlowStatementModel:
   symbol:str
   period:periodType
   fiscal_year:int
-  filing_date:date
+  effective_date:date
   # operating cash flow
   operating_cash_flow : Optional[float] = None
   # Investing Cash Flow
