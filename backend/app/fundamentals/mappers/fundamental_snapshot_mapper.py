@@ -16,7 +16,9 @@ class FundamentalSnapshotMapper:
             period=data.get("period"),
             fiscal_year=entity.fiscal_year,
             effective_date=entity.effective_date,
-
+            income_statement=income,
+            cash_flow_statement=cashflow,
+            balance_sheet=balance,
             total_revenue=income.get("totalRevenue"),
             net_income=income.get("netIncome"),
             eps=income.get("eps"),
