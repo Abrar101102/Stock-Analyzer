@@ -1,7 +1,7 @@
 from fastapi import APIRouter,Depends,Query,HTTPException
 from sqlalchemy.orm import Session
 from datetime import date
-from app.db.session import get_db
+from app.dependencies.db_dependency import get_db
 from app.services.fundamental_read_service import FundamentalReadService
 
 router =APIRouter(prefix='/fundamentals',tags=['Fundamentals'])

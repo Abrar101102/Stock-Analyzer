@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 from app.fundamentals.mappers.fundamental_snapshot_mapper import FundamentalSnapshotMapper
 from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
 from app.registry.stock_registry import StockRegistry
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import NotFoundError
 
 class FundamentalReadService:
-  def __init___(self):
+  def __init__(self):
     self.repository = FundamentalReadRepository()
       
   def get_snapshot(

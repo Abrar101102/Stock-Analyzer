@@ -43,3 +43,12 @@ class FundamentalReadRepository:
             .limit(limit)
             .all()
         )
+    
+    def get_latest_years(self,db:Session,symbol:str,limit:int):
+        return (
+            db.query(FundamentalSnapshot)
+            .filter(FundamentalSnapshot.symbol == symbol)
+            .order_by(FundamentalSnapshot.fiscal_year.desc())
+            .limit(limit)
+            .all()
+        )
