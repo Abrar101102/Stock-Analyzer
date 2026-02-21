@@ -1,6 +1,6 @@
 from fastapi import APIRouter,Depends,Query
 from sqlalchemy.orm import Session
-from app.db import get_db
+from app.dependencies.db_dependency import get_db
 from app.services.derived_metrics_service import DerivedMetricsService
 
 router = APIRouter( prefix="/ratios", tags=["derived_metrics"])
