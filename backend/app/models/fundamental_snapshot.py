@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column,Date,Integer,String,DateTime,JSON
+from sqlalchemy import Column,Date,Integer,String,DateTime,JSON,UniqueConstraint,Index
 
 Base = declarative_base()
 
@@ -13,3 +13,8 @@ class FundamentalSnapshot(Base):
   effective_date= Column(Date)
   ingestion_time = Column(DateTime)
   data = Column(JSON)
+
+  __tableargs__ = (
+    UniqueConstraint('symbol','fiscal_year',name = 'uix_symbol_fiscal_year'),
+    Index('idx_symbol_year','symbol','fiscal_year')
+  )

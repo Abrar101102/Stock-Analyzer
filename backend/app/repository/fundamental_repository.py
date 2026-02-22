@@ -9,6 +9,18 @@ def save_snapshot(
     effective_date,
     data:dict
 ):
+  existing = db.query(FundamentalSnapshot).filter(
+    FundamentalSnapshot.symbol == symbol,
+    FundamentalSnapshot.fiscal_year == fiscal_year
+  ).first()
+
+  if existing:
+    existing.data = data
+    existing.effective_date = effective_date
+    existing.ingestion_time = datetime.utcnow()
+    db.commit()
+    db.refresh(existing)
+    return existing
   snapshot = FundamentalSnapshot(
     symbol = symbol,
     fiscal_year= fiscal_year,
@@ -16,6 +28,8 @@ def save_snapshot(
     ingestion_time= datetime.now(),
     data=data
   )
+  
+
 
   db.add(snapshot)
   db.commit()
