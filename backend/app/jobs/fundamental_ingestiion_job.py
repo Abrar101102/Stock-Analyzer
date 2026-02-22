@@ -2,7 +2,7 @@ from datetime import date
 from app.db.session import SessionLocal
 from app.services.fundamental_ingestion_service import FundamentalIngestionService
 from app.dependencies.fundamental_persistance_dependency import get_fundamental_persistance_service
-from app.dependencies.fundamental_depencies import get_fundamental_service
+from app.dependencies.fundamental_depencies import get_fundamental_service,get_yahoo_fundamental_provider
 from app.registry.stock_registry import StockRegistry
 
 def run__fundamental_ingestion():
@@ -10,7 +10,8 @@ def run__fundamental_ingestion():
   db = SessionLocal()
 
   try:
-    provider_service = get_fundamental_service()
+    yahoo_provider = get_yahoo_fundamental_provider()
+    provider_service = get_fundamental_service(yahoo_fundamental_provider=yahoo_provider)
     persistance_service = get_fundamental_persistance_service()
 
     ingestion_service = FundamentalIngestionService(

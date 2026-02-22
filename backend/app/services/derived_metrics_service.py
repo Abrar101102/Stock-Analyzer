@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
 from app.fundamentals.models.financial_ratio_model import FinancialRatioModel
-
+import json
 class DerivedMetricsService:
 
   def __init__(self):
@@ -15,7 +15,7 @@ class DerivedMetricsService:
     ratios = []
 
     for entity in snapshots:
-      data = entity.data or {}
+      data = json.loads(entity.data or "{}")
 
       income = data.get("income_statement",{})
       balance_sheet = data.get("balance_sheet",{})
