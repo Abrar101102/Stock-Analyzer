@@ -22,3 +22,6 @@ class BaseFundamentalProvider(ABC):
   def get_cash_flows(self,symbol:str,period:str='annual',limit:int=5)->List[CashFlowStatementModel]:
     """Fetch Cash Flow Statements"""
     pass
+  def get_available_years(self,symbol:str)->List[int]:
+    """Fetch available fiscal years for a given symbol"""
+    pass

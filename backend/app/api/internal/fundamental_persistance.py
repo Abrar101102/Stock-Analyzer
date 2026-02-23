@@ -24,6 +24,17 @@ def ingest_snapshot(
     fiscal_year=fiscal_year,
   )
 
+@router.post("/backfill/{symbol}")
+def backfill_symbol(
+    symbol:str,
+    db:Session = Depends(get_db),
+    service = Depends(get_ingestion_service)
+):
+  return service.backfill_symbol_year(
+    db=db,
+    symbol=symbol
+  )
+
 @router.get("/{symbol}/{fiscal_year}/latest")
 def get_latest(
     symbol:str,

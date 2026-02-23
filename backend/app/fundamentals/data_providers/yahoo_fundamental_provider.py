@@ -188,3 +188,9 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             )
 
         return models
+    def get_available_years(self, symbol: str) -> List[int]:
+        ticker, _ = self.get_ticker_and_earning(symbol)
+        balance_sheet_df = ticker.balance_sheet
+        if balance_sheet_df is None or balance_sheet_df.empty:
+            return []
+        return [self._year(col) for col in balance_sheet_df.columns]

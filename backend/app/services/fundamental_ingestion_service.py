@@ -1,6 +1,7 @@
 from dataclasses import asdict
 from datetime import date
 import json
+from app.models.fundamental_snapshot import FundamentalSnapshot
 class FundamentalIngestionService:
   def __init__(self,provider_service,persistance_service):
     
@@ -29,3 +30,26 @@ class FundamentalIngestionService:
       effective_date=effective_date,
       data=data_dict
     )
+  def backfill_symbol_year(self,db,symbol:str):
+    stored_years = {
+      row.fiscal_year
+      for row in db.query(FundamentalSnapshot.fiscal_year).filter(
+        FundamentalSnapshot.symbol == symbol
+      ).all()
+    }
+    missing_snapshots = self.provider_service.missing_years_snapshots(symbol,'annual',stored_years)
+
+    missing_years_data =[]
+    for snapshot in missing_snapshots:
+      ingested = self.persistance_service.ingest_fundamental_snapshot(
+        db=db,
+        symbol=symbol,
+        fiscal_year=snapshot.fiscal_year,
+        effective_date=snapshot.effective_date,
+        data=asdict(snapshot)
+      )
+      missing_years_data.append(ingested.fiscal_year)
+      
+    return missing_years_data
+  
+      

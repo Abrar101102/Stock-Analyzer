@@ -282,3 +282,21 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         ))
         
     return ratio_fiscal_year
+  
+  def missing_years_snapshots(self,symbol:str,period:str="annual",stored_years={})-> List[FundamentalSnapshotModel]:
+    """
+    Backfills missing years by fetching additional data from provider and creating synthetic snapshots for missing years.
+    This is a best effort attempt to fill in gaps in data but is not guaranteed to fill all gaps due to provider limitations.
+    """
+    available_years = self.provider.get_available_years(symbol)
+    if not available_years:
+      raise NotFoundError(
+                code="FUNDAMENTALS_NOT_FOUND",
+                message=f"No fundamentals found for symbol {symbol}"
+            )
+    array_of_snapshots = []
+    missing_years = set(available_years) - stored_years
+    for fiscal_year in missing_years:
+      array_of_snapshots.append(self.get_fundamental_snapshot(symbol,fiscal_year,period))
+
+    return array_of_snapshots
