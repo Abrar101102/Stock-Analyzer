@@ -9,9 +9,11 @@ class YearTrend:
   net_income:Optional[float]
   net_income_growth:Optional[float]
   roe:Optional[float]
-
+  eps:Optional[float]
+  eps_growth:Optional[float]
 @dataclass
 class TrendResponse:
   symbol:str
   years:List[YearTrend]
-  
+  cagr_3yr:Optional[float] = None
+  cagr_5yr:Optional[float] = None
