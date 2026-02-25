@@ -1,8 +1,13 @@
 from datetime import date
 from sqlalchemy.orm import Session
-from app.repository.fundamental_repository import save_snapshot,get_latest_snapshot,get_snapshot_as_of
+from app.fundamentals.repositories.fundamental_write_repository import FundamentalWriteRepository
+from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
 from app.core.exceptions import ValidationError,NotFoundError
 class FundamentalPersistanceProvider:
+
+  def __init__(self):
+    self.write_repo = FundamentalWriteRepository()
+    self.read_repo = FundamentalReadRepository()
 
   def ingest_fundamental_snapshot(
       self,
@@ -25,12 +30,12 @@ class FundamentalPersistanceProvider:
         message="Fundamental Data Cannot be empty"
       )
     
-    existing = get_latest_snapshot(db,symbol,fiscal_year)
+    existing = self.read_repo.get_latest(db,symbol,fiscal_year)
 
     if existing and existing.effective_date == effective_date and existing.data == data:
       return existing
     
-    return save_snapshot(
+    return self.write_repo.save_snapshot(
       db=db,
       symbol=symbol,
       fiscal_year=fiscal_year,
@@ -40,7 +45,7 @@ class FundamentalPersistanceProvider:
   
   def fetch_latest(self,db:Session,symbol:str,fiscal_year:int):
 
-    snapshot = get_latest_snapshot(db,symbol,fiscal_year)
+    snapshot = self.read_repo.get_latest(db,symbol,fiscal_year)
 
     if not snapshot:
       raise NotFoundError(
@@ -51,7 +56,7 @@ class FundamentalPersistanceProvider:
     return snapshot
   
   def fetch_as_of(self,db:Session,symbol:str,fiscal_year:int,as_of_date:date):
-    snapshot = get_snapshot_as_of(db,symbol,fiscal_year,as_of_date)
+    snapshot = self.read_repo.get_as_of(db,symbol,fiscal_year,as_of_date)
 
     if not snapshot:
       raise NotFoundError(

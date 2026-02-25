@@ -52,3 +52,14 @@ class FundamentalReadRepository:
             .limit(limit)
             .all()
         )
+    
+    def get_latest_snapshot_for_symbol(self,db:Session,symbol:str):
+        return (
+            db.query(FundamentalSnapshot).
+            filter(FundamentalSnapshot.symbol == symbol)
+            .order_by(
+                FundamentalSnapshot.fiscal_year.desc(),
+                FundamentalSnapshot.effective_date.desc()
+            )
+            .first()
+        )
