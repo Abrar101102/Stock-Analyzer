@@ -2,7 +2,7 @@ from fastapi import APIRouter,Depends
 from sqlalchemy.orm import Session
 from dependencies.db_dependency import get_db
 
-from app.valuation.services.valuation_service import ValuationService
+from backend.app.services.valuation_service import ValuationService
 from app.market_data.base_price_service import BasePriceService
 
 router = APIRouter("/valuation",tags=["Valuation"])
