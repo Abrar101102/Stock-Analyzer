@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict,List
 from app.models.stock import StockSymbol
 from app.core.exceptions import NotFoundError
 # Registry is responsible for Is this symbol allowed and what does it represent?
@@ -43,3 +43,15 @@ class StockRegistry:
   @classmethod
   def list_all(cls):
     return cls._stocks.copy()
+  
+  @classmethod
+  def get_by_sector(cls,sector:str) -> List[StockSymbol]:
+    return [
+      stock for stock in cls._stocks.values() 
+      if stock.sector.lower() == sector.lower()
+    ]
+  
+  @classmethod
+  def get_peers(cls,symbol:str) -> List[StockSymbol]:
+    stock = cls.get_stock(symbol)
+    return cls.get_by_sector(stock.sector)
