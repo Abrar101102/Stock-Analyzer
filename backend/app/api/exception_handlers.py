@@ -12,6 +12,7 @@ def domain_error_handler(request:Request,exc:DomainError):
     "ORDERING_VIOLATION":400,
     "SNAPSHOT_NOT_FOUND":400,
     "NO_PEERS_FOUND":404,
+    "INSUFFICIENT_DATA":404,
     "EMPTY_DATA":400,
     "NO_FILING_DATE":400,
     "STOCK_NOT_FOUND":404,
