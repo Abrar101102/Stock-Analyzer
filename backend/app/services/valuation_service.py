@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.valuation.models.valuation_model import ValuationResponse
 from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
+from app.services.quarterly_trend_service import QuarterlyTrendService
 from app.core.exceptions import NotFoundError
 from app.market_data.base_price_service import BasePriceService
 import json
@@ -10,6 +11,7 @@ class ValuationService:
   def __init__(self,price_service:BasePriceService):
     self.fundamental_repo = FundamentalReadRepository()
     self.price_service = price_service
+    self.quarterly_service = QuarterlyTrendService()
 
   #Internal method to compute various metrics, can be extended in future for more complex calculations or to fetch additional data as needed
   def _compute_metrics(self,db:Session,symbol:str):
@@ -27,7 +29,7 @@ class ValuationService:
     balance = data.get("balance_sheet",{})
     cash_flow = data.get("cash_flow_statement",{})
 
-    eps = income.get("eps")
+    eps = self.quarterly_service.get_ttm(db,symbol,"eps")
     net_income = income.get("net_income")
     ebitda = income.get("ebitda")
 
@@ -90,7 +92,8 @@ class ValuationService:
     balance = data.get("balance_sheet",{})
     cash_flow = data.get("cash_flow_statement",{})
 
-    eps = income.get("eps")
+    
+    eps = self.quarterly_service.get_ttm(db,symbol,"eps")
     net_income = income.get("net_income")
     ebitda = income.get("ebitda")
 

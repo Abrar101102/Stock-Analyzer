@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column,Date,Integer,String,DateTime,JSON,UniqueConstraint,Index
-
-Base = declarative_base()
+from app.db.base_class import Base
 
 class FundamentalSnapshot(Base):
   __tablename__= "fundamental_snapshot"

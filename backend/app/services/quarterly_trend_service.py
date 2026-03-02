@@ -1,4 +1,4 @@
-from fundamentals.repositories.quarterly_read_repository import QuarterlyReadReository
+from app.fundamentals.repositories.quarterly_read_repository import QuarterlyReadReository
 from app.core.exceptions import NotFoundError
 from sqlalchemy.orm import Session
 import json
@@ -81,6 +81,18 @@ class QuarterlyTrendService:
       return None
     
     return current_qoq - previous_qoq
+  
+  def get_momentum_score(self,db:Session,symbol,metric_key):
+    yoy=self.get_yoy_growth(db,symbol,metric_key)
+    qoq = self.get_qoq_growth(db,symbol,metric_key)
+    acceleration = self.get_earning_acceleration(db,symbol,metric_key)
+
+    if None in (yoy,qoq,acceleration):
+      return None
+    
+    score = (yoy *0.5) + (qoq*0.3) + (acceleration*0.2)
+
+    return round(score,2)
   
   def build_quarterly_snapshot(self, db: Session, symbol: str):
 
