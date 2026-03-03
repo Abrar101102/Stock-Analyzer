@@ -8,16 +8,18 @@ from app.api.internal.fundamental_persistance import router as ingest_router
 from app.api.fundamental_read_routes import router as read_router
 from app.api.derived_metrics_route import router as derived_metrics_router
 from app.api.trend_route import router as trend_router
+from app.api.quarterly import router as quarterly_router
 from app.api.exception_handlers import domain_error_handler
 from app.core.exceptions import DomainError
 from app.core.logging import set_up_logging
 from app.middleware.request_context import request_context_middleware
 from app.middleware.metrics import metrics_middleware
-from app.models.fundamental_snapshot import Base
+from app.db.base_class import Base
 from app.scheduler import start_scheduler
 from app.db.session import engine
 
 Base.metadata.create_all(bind=engine)# Responsible for creating Table if not created
+
 app = FastAPI(title="Stock Analyzer")
 
 set_up_logging()
@@ -32,7 +34,7 @@ app.add_middleware(
   allow_headers=["*"],
 )
 
-routes_under_api = [stock_router,fundamental_router,ingest_router,read_router,metrics_router,derived_metrics_router,trend_router,health_router]
+routes_under_api = [stock_router,fundamental_router,ingest_router,read_router,metrics_router,derived_metrics_router,trend_router,quarterly_router,health_router]
 # app.include_router(health_router)
 # app.include_router(stock_router,prefix="/api")
 for route in routes_under_api:
