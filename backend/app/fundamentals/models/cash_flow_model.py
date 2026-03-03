@@ -12,6 +12,7 @@ class CashFlowStatementModel:
   symbol:str
   period:periodType
   fiscal_year:int
+  fiscal_quarter:Optional[int]=None
   effective_date:date
   # operating cash flow
   operating_cash_flow : Optional[float] = None

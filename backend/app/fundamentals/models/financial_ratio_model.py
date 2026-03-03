@@ -8,6 +8,7 @@ class FinancialRatioModel:
   """
   symbol : str
   fiscal_year : int
+  fiscal_quarter:Optional[int]=None
   net_margin : Optional[float] = None
   current_ratio : Optional[float] = None
   debt_to_equity : Optional[float] = None
