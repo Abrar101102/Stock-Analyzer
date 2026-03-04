@@ -59,22 +59,49 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       )
     return limit
   
-  def _select_by_year(self,models,fiscal_year):
-    return next(
-      (m for m in models if m.fiscal_year == fiscal_year),None
-    )
+  def _select_snapshot(self, statements, fiscal_year: int, period: str, fiscal_quarter: int | None = None):
+    
+    if period == "annual":
+        for s in statements:
+            if s["fiscalYear"] == fiscal_year:
+                return s
+
+    elif period == "quarterly":
+        for s in statements:
+            if (
+                s["fiscalYear"] == fiscal_year and
+                s["fiscalQuarter"] == fiscal_quarter
+            ):
+                return s
+
+    return None
 
   def _assert_sorted_desc(self,items):
-    years = [x.fiscal_year for x in items]
-    if years != sorted(years,reverse= True):
-      raise ValidationError(
-        code = "ORDERING_VIOLATION",
-        message= "Fiscal Year Ordering Violation",
-        details={"recieved":f"years {years} and sorted years {sorted(years,reverse=True)}"}
-      )
-    # print(years)
+    keys = [
+        (x.fiscal_year, getattr(x, "fiscal_quarter", None))
+        for x in items
+    ]
+
+    sorted_keys = sorted(
+        keys,
+        reverse=True
+    )
+
+    if keys != sorted_keys:
+        raise ValidationError(
+            code="ORDERING_VIOLATION",
+            message="Fiscal ordering violation",
+            details={"received": keys, "expected": sorted_keys}
+        )
+
     return items
-  def get_fundamental_snapshot(self,symbol:str,fiscal_year:int,period:str="annual") -> FundamentalSnapshotModel:
+  
+  def _period_key(self,model):
+    return(
+      model.fiscal_year,getattr(model,"fiscal_quarter",None)
+    )
+  
+  def get_fundamental_snapshot(self,symbol:str,fiscal_year:int,period:str="annual",fiscal_quarter:int|None = None) -> FundamentalSnapshotModel:
 
     logger.info(
         "Fetching fundamentals Snapshot",
@@ -82,9 +109,9 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     )
 
     fundamentals = self.get_fundamentals(symbol,fiscal_year)
-    income_statement = self._select_by_year(fundamentals['income_statements'],fiscal_year)
-    balance_sheet = self._select_by_year(fundamentals['balance_sheets'],fiscal_year)
-    cash_flow = self._select_by_year(fundamentals['cash_flows'],fiscal_year)
+    income_statement = self._select_snapshot(fundamentals['income_statements'],fiscal_year,period,fiscal_quarter)
+    balance_sheet = self._select_snapshot(fundamentals['balance_sheets'],fiscal_year,period,fiscal_quarter)
+    cash_flow = self._select_snapshot(fundamentals['cash_flows'],fiscal_year,period,fiscal_quarter)
 
     fy = income_statement.fiscal_year
 
@@ -112,6 +139,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       symbol = self._normalize_symbol(symbol),
       period = period,
       fiscal_year = income_statement.fiscal_year,
+      fiscal_quarter = income_statement.fiscal_quarter,
       effective_date = income_statement.effective_date,
       income_statement = income_statement,
       balance_sheet= balance_sheet,
@@ -124,6 +152,8 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       total_assets = balance_sheet.total_assets,
       shareholders_equity = balance_sheet.shareholders_equity
     )
+  
+  
 
   
 
@@ -240,14 +270,15 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     balance_sheets = fundamentals['balance_sheets']
     cash_flows = fundamentals['cash_flows']
 
-    bs_map = { bs.fiscal_year : bs for bs in balance_sheets }
-    cf_map = { cf.fiscal_year : cf for cf in cash_flows }
+    bs_map = { self._period_key(bs): bs for bs in balance_sheets }
+    cf_map = { self._period_key(cf): cf for cf in cash_flows }
     ratio_fiscal_year = []
 
     for inc in income_statements:
+      key = self._period_key(inc)
     
-      bs = bs_map.get(inc.fiscal_year,None)
-      cf = cf_map.get(inc.fiscal_year,None)
+      bs = bs_map.get(key,None)
+      cf = cf_map.get(key,None)
 
       if not bs or not cf:
         continue
@@ -274,6 +305,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         FinancialRatioModel(
         symbol = self._normalize_symbol(symbol),
         fiscal_year = inc.fiscal_year,
+        fiscal_quarter = inc.fiscal_quarter,
         net_margin = round(net_margin,4) if net_margin else None,
         current_ratio = round(current_ratio,4) if current_ratio else None,
         debt_to_equity = round(debt_to_equity,4) if debt_to_equity else None,
@@ -283,20 +315,37 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         
     return ratio_fiscal_year
   
-  def missing_years_snapshots(self,symbol:str,period:str="annual",stored_years={})-> List[FundamentalSnapshotModel]:
+  def missing_years_snapshots(self,symbol:str,period:str="annual",stored_periods={})-> List[FundamentalSnapshotModel]:
     """
     Backfills missing years by fetching additional data from provider and creating synthetic snapshots for missing years.
     This is a best effort attempt to fill in gaps in data but is not guaranteed to fill all gaps due to provider limitations.
     """
-    available_years = self.provider.get_available_years(symbol)
-    if not available_years:
+    available_periods = self.provider.get_available_periods(symbol,period)
+    if not available_periods:
       raise NotFoundError(
                 code="FUNDAMENTALS_NOT_FOUND",
                 message=f"No fundamentals found for symbol {symbol}"
             )
     array_of_snapshots = []
-    missing_years = set(available_years) - stored_years
-    for fiscal_year in missing_years:
-      array_of_snapshots.append(self.get_fundamental_snapshot(symbol,fiscal_year,period))
+    missing_periods = set(available_periods) - stored_periods
+    for item in missing_periods:
+      if period == "annual":
+        fiscal_year = item
+        snapshot = self.get_fundamental_snapshot(
+          symbol=symbol,
+          fiscal_year=fiscal_year,
+          period="annual"
+        )
+      elif period == "quarter":
+        fiscal+year,fiscal_quarter = item
+        snapshot = self.get_fundamental_snapshot(
+          symbol=symbol,
+          fiscal_year=fiscal_year,
+          period = "quarter",
+          fiscal_quarter=fiscal_quarter
+          
+        )
+      array_of_snapshots.append(snapshot)
+
 
     return array_of_snapshots
