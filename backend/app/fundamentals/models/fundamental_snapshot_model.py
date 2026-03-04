@@ -16,8 +16,9 @@ class FundamentalSnapshotModel:
     symbol: str
     period: periodType
     fiscal_year: int
-    fiscal_quarter:Optional[int]=None
     effective_date : date
+    
+    
     # Full statements (compositon)
     income_statement : Optional[IncomeStatementModel]
     cash_flow_statement : Optional[CashFlowStatementModel]
@@ -25,6 +26,7 @@ class FundamentalSnapshotModel:
 
     # Key Metrics (flattened for quick access)
     # From Income Sheet Model
+    fiscal_quarter:Optional[int]=None
     total_revenue: Optional[float] = None
     net_income:Optional[float] = None
     eps:Optional[float] = None
