@@ -45,7 +45,7 @@ class QuarterlyIngestionService:
     }
     missing_snapshots = self.provider_service.missing_years_snapshots(
       symbol=symbol,
-      stored_quarters = stored_quarters
+      stored_periods = stored_quarters
       )
     
     ingested_periods = []
