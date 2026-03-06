@@ -45,6 +45,7 @@ class QuarterlyIngestionService:
     }
     missing_snapshots = self.provider_service.missing_years_snapshots(
       symbol=symbol,
+      period = "quarter",
       stored_periods = stored_quarters
       )
     
@@ -63,4 +64,4 @@ class QuarterlyIngestionService:
       ingested_periods.append(
         (ingested.fiscal_year,ingested.fiscal_quarter)
       )
-      return ingested_periods
+    return ingested_periods

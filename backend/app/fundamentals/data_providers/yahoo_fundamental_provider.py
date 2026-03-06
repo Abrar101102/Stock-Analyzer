@@ -46,23 +46,34 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
         """
         return col.year if hasattr(col, "year") else int(col)
     
-    def get_ticker_and_earning(self,symbol):
+    def get_ticker_and_earning(self, symbol):
         ticker = yf.Ticker(symbol)
-        earnings_df = ticker.get_earnings_dates(limit=8)
+        
         earnings_map = {}
+        try:
+            earnings_df = ticker.get_earnings_dates(limit=20)  # more history for backfill
 
-        if earnings_df is not None and not earnings_df.empty:
-            # print("Earnings DF",earnings_df)
-            for dt in earnings_df.index:
-                # Todo: Improve fiscal year mapping logic
-                fy = dt.year - 1
-                earnings_map[fy] = dt.date()
-        return ticker,earnings_map
+            if earnings_df is not None and not earnings_df.empty:
+                for dt in earnings_df.index:
+                    fy = dt.year
+                    fq = dt.quarter
+                    # Store both annual and quarterly keys
+                    earnings_map[(fy, fq)] = dt.date()   # quarterly key: (2024, 1)
+                    if fy not in earnings_map:
+                        earnings_map[fy] = dt.date()      # annual key: 2024
+        except Exception as e:
+            logger.warning(f"Could not Fetch Earning dates for {symbol}:{e}")
+
+        return ticker, earnings_map
     # ---------- BALANCE SHEET ----------
 
     def get_balance_sheets(self, symbol: str, period: str = "annual") -> List[BalanceSheetModel]:
         ticker,earnings_map = self.get_ticker_and_earning(symbol)
-        df = ticker.balance_sheet
+
+        if period == "annual":
+            df = ticker.balance_sheet
+        elif period == "quarter":
+            df = ticker.quarterly_balance_sheet
 
         models: List[BalanceSheetModel] = []
 
@@ -82,13 +93,18 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
             fy = self._year(col)
-            effective_date = earnings_map.get(fy,date.today())
+            fq = col.quarter if period == "quarter" else None
+            if period == "quarter":
+                effective_date = earnings_map.get((fy, fq), date.today())
+            else:
+                effective_date = earnings_map.get(fy, date.today())
             print(f"filing date {effective_date}")
             models.append(
                 BalanceSheetModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
+                    fiscal_quarter = fq,
                     effective_date= effective_date,
                     total_assets=self._get(df, "Total Assets", col),
                     current_assets=self._get(df, "Current Assets", col),
@@ -108,7 +124,11 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
 
     def get_income_statements(self, symbol: str, period: str = "annual") -> List[IncomeStatementModel]:
         ticker,earnings_map = self.get_ticker_and_earning(symbol)
-        df = ticker.financials
+
+        if period == "annual":
+            df = ticker.financials
+        elif period == "quarter":
+            df = ticker.quarterly_financials
 
         models: List[IncomeStatementModel] = []
 
@@ -128,12 +148,17 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
             fy = self._year(col)
-            effective_date = earnings_map.get(fy,date.today())
+            fq = col.quarter if period == "quarter" else None
+            if period == "quarter":
+                effective_date = earnings_map.get((fy, fq), date.today())
+            else:
+                effective_date = earnings_map.get(fy, date.today())
             models.append(
                 IncomeStatementModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
+                    fiscal_quarter = fq,
                     effective_date=effective_date,
                     total_revenue=self._get(df, "Total Revenue", col),
                     operating_income=self._get(df, "Operating Income", col),
@@ -148,7 +173,11 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
 
     def get_cash_flows(self, symbol: str, period: str = "annual") -> List[CashFlowStatementModel]:
         ticker,earnings_map = self.get_ticker_and_earning(symbol)
-        df = ticker.cashflow
+
+        if period == "annual":
+            df = ticker.cashflow
+        elif period == "quarter":
+            df = ticker.quarterly_cashflow
 
         models: List[CashFlowStatementModel] = []
 
@@ -168,12 +197,17 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             extra={"symbol": symbol, "fiscal_year": self._year(col)}
         )
             fy = self._year(col)
-            effective_date = earnings_map.get(fy,date.today())
+            fq = col.quarter if period == "quarter" else None
+            if period == "quarter":
+                effective_date = earnings_map.get((fy, fq), date.today())
+            else:
+                effective_date = earnings_map.get(fy, date.today())
             models.append(
                 CashFlowStatementModel(
                     symbol=symbol,
                     period=period,
                     fiscal_year=self._year(col),
+                    fiscal_quarter = fq,
                     effective_date=effective_date,
                     operating_cash_flow=self._get(df, "Operating Cash Flow", col),
                     capital_expenditure=self._get(df, "Capital Expenditure", col),
@@ -188,9 +222,4 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             )
 
         return models
-    def get_available_years(self, symbol: str) -> List[int]:
-        ticker, _ = self.get_ticker_and_earning(symbol)
-        balance_sheet_df = ticker.balance_sheet
-        if balance_sheet_df is None or balance_sheet_df.empty:
-            return []
-        return [self._year(col) for col in balance_sheet_df.columns]
+    

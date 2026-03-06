@@ -4,7 +4,7 @@ from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapsh
 from app.registry.stock_registry import StockRegistry
 from app.core.exceptions import ValidationError,NotFoundError
 from app.fundamentals.validation.provider_sanity import assert_valid_fiscal_year
-
+from dataclasses import asdict
 from typing import List
 import logging
 
@@ -59,21 +59,25 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       )
     return limit
   
-  def _select_snapshot(self, statements, fiscal_year: int, period: str, fiscal_quarter: int | None = None):
-    
-    if period == "annual":
-        for s in statements:
-            if s["fiscalYear"] == fiscal_year:
-                return s
-
-    elif period == "quarterly":
-        for s in statements:
-            if (
-                s["fiscalYear"] == fiscal_year and
-                s["fiscalQuarter"] == fiscal_quarter
-            ):
-                return s
-
+  def _select_snapshot(self, statements, fiscal_year, period: str, fiscal_quarter=None):
+    for s in statements:
+        # 1. Use direct attribute access (s.fiscal_year)
+        # 2. Wrap both sides in int() to ignore type mismatches
+        try:
+            if period == "annual":
+                if int(s.fiscal_year) == int(fiscal_year):
+                    return s
+            
+            elif period == "quarter":
+                print(f"DEBUG: Search Target FY type: {type(fiscal_year)}, QTR type: {type(fiscal_quarter)}")
+                if (int(s.fiscal_year) == int(fiscal_year) and 
+                    int(s.fiscal_quarter) == int(fiscal_quarter)):
+                    print(f"DEBUG: Search Target FY type: {fiscal_year}, QTR type: {fiscal_quarter}")
+                    return s
+        except (ValueError, TypeError, AttributeError):
+            # This handles cases where fiscal_quarter might be None
+            continue
+    print(f"FAILED TO FIND MATCH in {len(statements)} records")
     return None
 
   def _assert_sorted_desc(self,items):
@@ -101,6 +105,42 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       model.fiscal_year,getattr(model,"fiscal_quarter",None)
     )
   
+  # In fundamental_service.py — not in the provider
+  def get_available_periods(self, symbol: str, period: str):
+      """Returns only periods where all 3 filtered statements exist."""
+      # symbol = self._normalize_symbol(symbol)
+      
+      # Use provider methods directly (no limit, no fiscal_year filter)
+      income_statements = self.provider.get_income_statements(symbol, period)
+      balance_sheets    = self.provider.get_balance_sheets(symbol, period)
+      cash_flows        = self.provider.get_cash_flows(symbol, period)
+
+      # Apply same filtering logic as get_fundamentals
+      def filter_income(stmts):
+          return {
+              self._period_key(s) for s in stmts
+              if s.fiscal_year is not None
+              and not (s.total_revenue is None and s.net_income is None)
+          }
+      def filter_balance(stmts):
+          return {
+              self._period_key(s) for s in stmts
+              if s.fiscal_year is not None
+              and not (s.total_assets is None and s.total_liabilities is None and s.shareholders_equity is None)
+          }
+      def filter_cashflow(stmts):
+          return {
+              self._period_key(s) for s in stmts
+              if s.fiscal_year is not None
+              and s.operating_cash_flow is not None
+          }
+
+      inc_periods = filter_income(income_statements)
+      bs_periods  = filter_balance(balance_sheets)
+      cf_periods  = filter_cashflow(cash_flows)
+
+      return inc_periods & bs_periods & cf_periods
+  
   def get_fundamental_snapshot(self,symbol:str,fiscal_year:int,period:str="annual",fiscal_quarter:int|None = None) -> FundamentalSnapshotModel:
 
     logger.info(
@@ -108,10 +148,18 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         extra={"symbol": symbol, "period": period, "fiscal_year":fiscal_year}
     )
 
-    fundamentals = self.get_fundamentals(symbol,fiscal_year)
+    fundamentals = self.get_fundamentals(symbol,fiscal_year,period=period)
+    print("Fundamentals",fundamentals)
     income_statement = self._select_snapshot(fundamentals['income_statements'],fiscal_year,period,fiscal_quarter)
     balance_sheet = self._select_snapshot(fundamentals['balance_sheets'],fiscal_year,period,fiscal_quarter)
     cash_flow = self._select_snapshot(fundamentals['cash_flows'],fiscal_year,period,fiscal_quarter)
+    print("INCOME STMENT",income_statement)
+
+    if not income_statement or not balance_sheet or not cash_flow:
+      raise NotFoundError(
+                code="FUNDAMENTALS_NOT_FOUND",
+                message=f"No fundamentals found for symbol {symbol}"
+            )
 
     fy = income_statement.fiscal_year
 
@@ -124,10 +172,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         }
       )
 
-    if not income_statement or not balance_sheet or not cash_flow:raise NotFoundError(
-                code="FUNDAMENTALS_NOT_FOUND",
-                message=f"No fundamentals found for symbol {symbol}"
-            )
+    
     
     if income_statement.effective_date != balance_sheet.effective_date or income_statement.effective_date != cash_flow.effective_date:
       raise ValidationError(
@@ -136,7 +181,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       ) 
 
     return FundamentalSnapshotModel(
-      symbol = self._normalize_symbol(symbol),
+      symbol = symbol,
       period = period,
       fiscal_year = income_statement.fiscal_year,
       fiscal_quarter = income_statement.fiscal_quarter,
@@ -265,7 +310,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         extra={"symbol": symbol, "period": period,"limit":limit}
     )
     limit = self._validate_limit(limit)
-    fundamentals = self.get_fundamentals(symbol,period,limit)
+    fundamentals = self.get_fundamentals(symbol,fiscal_year=None,period=period,limit=limit)
     income_statements = fundamentals['income_statements']
     balance_sheets = fundamentals['balance_sheets']
     cash_flows = fundamentals['cash_flows']
@@ -315,12 +360,16 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         
     return ratio_fiscal_year
   
-  def missing_years_snapshots(self,symbol:str,period:str="annual",stored_periods={})-> List[FundamentalSnapshotModel]:
+  def missing_years_snapshots(self,symbol:str,period:str="annual",stored_periods=None)-> List[FundamentalSnapshotModel]:
     """
     Backfills missing years by fetching additional data from provider and creating synthetic snapshots for missing years.
     This is a best effort attempt to fill in gaps in data but is not guaranteed to fill all gaps due to provider limitations.
     """
-    available_periods = self.provider.get_available_periods(symbol,period)
+    stored_periods= stored_periods or set()
+    symbol_for_available_period = self._normalize_symbol(symbol)
+    available_periods = self.get_available_periods(symbol_for_available_period,period)
+    print("Period Given",period)
+    print("Available Periods",available_periods)
     if not available_periods:
       raise NotFoundError(
                 code="FUNDAMENTALS_NOT_FOUND",
@@ -337,7 +386,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
           period="annual"
         )
       elif period == "quarter":
-        fiscal+year,fiscal_quarter = item
+        fiscal_year,fiscal_quarter = item
         snapshot = self.get_fundamental_snapshot(
           symbol=symbol,
           fiscal_year=fiscal_year,
