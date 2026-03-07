@@ -35,15 +35,19 @@ def run__fundamental_ingestion():
       try:
         ingestion_service.ingest_symbol_year(
           db = db,
-          symbol=stock.yahoo_symbol,
+          symbol=stock.symbol,
           fiscal_year=current_year
         )
+
         quarterly_ingestion_service.backfill_symbol_quarters(
           db=db,
-          symbol=stock.yahoo_symbol
+          symbol=stock.symbol
         
          )
       except Exception as e:
+        import traceback
+        print(f"FAILED for {stock.symbol}: {type(e).__name__}: {e}")
+        traceback.print_exc()  # ← THIS will show the exact line crashing
         db.rollback()
         continue
     db.commit()

@@ -1,0 +1,55 @@
+🚀 Part 2: Roadmap — What Next Steps to Take
+Based on what you've already built and your vision, here's a phased roadmap:
+
+Phase 2: Technical/Chart Analysis Layer 🔜 (Next)
+You already have ta in your requirements and price history. Build on this:
+
+Technical indicators: Moving Averages (SMA/EMA), RSI, MACD, Bollinger Bands, VWAP
+Chart pattern detection: Support/resistance levels, trend lines
+Store computed indicators in PostgreSQL for historical analysis
+Frontend: Interactive candlestick charts with overlays (use a charting library like Lightweight Charts or ngx-charts for Angular)
+Phase 3: External World / Sentiment Layer 🌍
+This is where your project becomes truly unique:
+
+News Sentiment Analysis:
+Use free news APIs (Polygon.io news, NewsAPI, or GNews)
+Run NLP sentiment analysis (HuggingFace's finbert model — purpose-built for financial text)
+Store sentiment scores per stock per day
+Macro-Economic Indicators:
+Fetch interest rates, inflation (CPI), GDP data from FRED API (free, by the US Federal Reserve)
+For India-specific: RBI data, sectoral indices from NSE
+Insider/Institutional Activity:
+Track FII/DII data (can be scraped from NSE/BSE)
+Correlate with price movements
+Phase 4: AI-Powered Analysis & Suggestions 🤖
+This is the crown jewel of your vision:
+
+Scoring Engine:
+Combine fundamental score (from your existing metrics) + technical score + sentiment score → Composite Stock Health Score
+AI Summarizer:
+Use an LLM (OpenAI API, or free alternatives like Groq/Mistral) to generate natural-language stock reports
+Input: fundamentals JSON + technical indicators + news sentiment
+Output: "RELIANCE shows strong revenue growth of 12% YoY, but RSI at 78 indicates overbought territory. Recent news sentiment is neutral. Consider waiting for a pullback."
+Anomaly Detection:
+Use scikit-learn (already in your requirements!) to detect unusual volume spikes, price deviations from historical patterns
+Phase 5: User Experience & Portfolio 👤
+User Authentication (JWT-based)
+Watchlists & Portfolio Tracking
+Custom Alerts (price targets, fundamental thresholds)
+Stock Screener with multi-parameter filtering
+Comparison Dashboard (you already have sector_comparision.py — expand this)
+Phase 6: Production Hardening 🛡️
+Caching layer (Redis) for frequently accessed data
+Rate limit management across multiple API providers
+Data quality checks and reconciliation between providers
+Deployment (Docker + cloud hosting)
+📋 Immediate Action Items (This Week)
+
+# Task Details
+
+1 Get an Alpha Vantage API key Free at alphavantage.co
+2 Create alpha_vantage_provider.py Implement the MarketDataProvider interface
+3 Extend base_provider.py Add get_income_statement, get_balance_sheet, get_cash_flow abstract methods
+4 Build ProviderManager Fallback logic so your app never goes down if one API fails
+5 Extend StockSymbol model Add provider-specific symbol mappings
+6 Update market_data_source.py Replace direct yf calls with the ProviderManager
