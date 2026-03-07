@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional,Literal
 from datetime import date
 
-periodType = Literal["annual","quarterly"]
+periodType = Literal["annual","quarter"]
 
 @dataclass
 class CashFlowStatementModel:

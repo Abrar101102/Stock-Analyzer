@@ -3,7 +3,7 @@ from app.core.exceptions import ValidationError
 from typing import Optional,Literal
 from datetime import date
 
-periodType = Literal["annual","quarterly"]
+periodType = Literal["annual","quarter"]
 
 @dataclass
 class IncomeStatementModel:
