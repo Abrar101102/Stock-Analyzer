@@ -8,3 +8,4 @@ class StockSymbol:
   yahoo_symbol:str         #RELIANCE.NS  
   name:Optional[str]=None  #Reliance Industries Limited
   sector:Optional[str]=None#Energy
+  alpha_vantage_symbol: str = ""

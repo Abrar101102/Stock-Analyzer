@@ -13,6 +13,7 @@ class StockRegistry:
       symbol="RELIANCE",
       exchange="NSE",
       yahoo_symbol="RELIANCE.NS",
+      alpha_vantage_symbol="RELIANCE.BSE",
       name="Reliance Industries Limited",
       sector="Energy"
     ),
@@ -20,6 +21,7 @@ class StockRegistry:
       symbol="TCS",
       exchange="NSE",
       yahoo_symbol="TCS.NS",
+      alpha_vantage_symbol="TCS.BSE",
       name="Tata Consultancy Services Limited",
       sector="IT"
     ),
