@@ -1,6 +1,6 @@
 from fastapi import APIRouter,HTTPException,Depends
 from app.dependencies.stock_dependencies import get_stock_service
-from app.dependencies.fundamental_depencies import get_fundamental_service
+from app.dependencies.fundamental_dependencies import get_fundamental_service
 # from app.services.stock_service import StockService
 # from app.data_providers.yahoo_provider import YahooMarketDataProvider
 
