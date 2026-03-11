@@ -16,11 +16,11 @@ class FundamentalSnapshotV1:
   net_income:Optional[float]=None
   eps:Optional[float]=None
 
-  operational_cash_flow : Optional[float] = None
+  operating_cash_flow : Optional[float] = None
 
   total_assets:Optional[float]=None
   total_liabilities:Optional[float] = None
-  shareholers_equity:Optional[float]=None
+  shareholders_equity:Optional[float]=None
 
 @dataclass
 class IncomeStatementV1:

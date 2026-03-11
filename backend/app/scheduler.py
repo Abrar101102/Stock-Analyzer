@@ -6,6 +6,7 @@ def start_scheduler():
   scheduler.add_job(
     run__fundamental_ingestion,
     trigger="cron",
+    # trigger="interval",
     # seconds=10,
     hour = 2,
     minute = 0

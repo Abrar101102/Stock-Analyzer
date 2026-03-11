@@ -13,7 +13,7 @@ class FundamentalSnapshot(Base):
   ingestion_time = Column(DateTime)
   data = Column(JSON)
 
-  __tableargs__ = (
+  __table_args__ = (
     UniqueConstraint('symbol','fiscal_year',name = 'uix_symbol_fiscal_year'),
     Index('idx_symbol_year','symbol','fiscal_year')
   )
