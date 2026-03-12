@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter,Depends,Query,HTTPException,Response
 
-from app.dependencies.fundamental_depencies import get_fundamental_service
+from app.dependencies.fundamental_dependencies import get_fundamental_service
 from app.dependencies.rate_limit_dependency import rate_limit
 from app.dependencies.auth_dependency import require_api_key,require_pro_key
 from app.core.validators import validate_period,validate_limit
@@ -35,8 +35,8 @@ def get_fundamental_snapshot(response:Response,symbol:str,fiscal_year:int=Query(
 
     logger.info("Snapshot Request Received",extra = {"symbol":symbol,"Version":"V1"})
     snapshot = fundamental_service.get_fundamental_snapshot(symbol, fiscal_year)
-    response.headers["X-RateLimit-Limit"] = 60
-    response.headers["X-RateLimit-Remaining"]= 59
+    response.headers["X-RateLimit-Limit"] = "60"
+    response.headers["X-RateLimit-Remaining"]= "59"
     return snapshot_to_v1(snapshot)
 
 @router.get("/{symbol}",dependencies = [Depends(require_api_key),Depends(rate_limit("fundamentals"))],response_model=dict[str,list])
@@ -49,8 +49,8 @@ def get_fundamentals(response:Response,symbol:str,period:str=Query("annual",patt
     logger.info("Fundamentals Request Received",extra = {"symbol":symbol,"Version":"V1"})
     fundamentals = fundamental_service.get_fundamentals(symbol,period,limit)
 
-    response.headers["X-RateLimit-Limit"] = 60
-    response.headers["X-RateLimit-Remaining"]= 59
+    response.headers["X-RateLimit-Limit"] = "60"
+    response.headers["X-RateLimit-Remaining"]= "59"
 
     return {
       "income_statements":[
@@ -76,6 +76,6 @@ def get_ratios(response:Response,symbol:str,period:str=Query("annual",pattern="^
     logger.info("Getting Ratios Request Received",extra = {"symbol":symbol,"Version":"V1"})
 
     ratios = fundamental_service.get_ratios(symbol,period,limit)
-    response.headers["X-RateLimit-Limit"] = 60
-    response.headers["X-RateLimit-Remaining"]= 59
+    response.headers["X-RateLimit-Limit"] = "60"
+    response.headers["X-RateLimit-Remaining"]= "59"
     return [ratio_to_v1(r) for r in ratios]
