@@ -11,6 +11,7 @@ from typing import List, Dict, Optional
 import logging
 import time
 import re
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,8 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
     _cache: Dict[str, Dict[str, pd.DataFrame]] = {}
     _cache_timestamps: Dict[str, float] = {}
     CACHE_TTL = 3600  # 1 hour — fundamentals don't change intraday
+    last_request_ts: float = 0.0
+    MIN_DELAY_SECONDS = 3.0  # be conservative
 
     def __init__(self):
         self.session = requests.Session()
@@ -44,6 +47,30 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
                 "Chrome/120.0.0.0 Safari/537.36"
             )
         })
+
+    def _wait_for_slot(self):
+        now = time.time()
+        elapsed = now - self._last_request_ts
+        if elapsed < self.MIN_DELAY_SECONDS:
+            time.sleep((self.MIN_DELAY_SECONDS - elapsed) + random.uniform(0.2, 0.8))
+        self._last_request_ts = time.time()
+
+    def _fetch_url(self, url: str):
+        self._wait_for_slot()
+
+        resp = self.session.get(url, timeout=15)
+
+        # Backoff on 429
+        if resp.status_code == 429:
+            retry_after = resp.headers.get("Retry-After")
+            base = float(retry_after) if retry_after else 30.0
+            sleep_for = base + random.uniform(1.0, 3.0)
+            logger.warning(f"Screener 429. Backing off for {sleep_for:.1f}s", extra={"url": url})
+            time.sleep(sleep_for)
+            return None
+
+        return resp
+    
 
     # ══════════════════════════════════════
     #  INTERNAL: SCRAPING & PARSING
@@ -86,6 +113,7 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
         Parse ALL financial tables from the page into DataFrames.
         Returns: {"Profit & Loss": DataFrame, "Balance Sheet": DataFrame, ...}
         """
+        symbol = self._normalize_for_screener(symbol)
         # Return from cache if valid
         if symbol in self._cache:
             age = time.time() - self._cache_timestamps.get(symbol, 0)
@@ -267,6 +295,7 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
 
         models: List[IncomeStatementModel] = []
         year_cols = [c for c in df.columns[1:] if self._extract_fiscal_year(c)]
+        year_cols = list(reversed(year_cols))  # ← newest first
 
         for col in year_cols[:limit]:
             fiscal_year = self._extract_fiscal_year(col)
@@ -297,7 +326,6 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
         self, symbol: str, period: str = "annual", limit: int = 5
     ) -> List[BalanceSheetModel]:
         symbol = self._normalize_for_screener(symbol)
-
         sections = self._parse_all_sections(symbol)
         df = sections.get("Balance Sheet")
 
@@ -305,23 +333,50 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
             logger.warning(f"No balance sheet data from screener for {symbol}")
             return []
 
-        # Balance sheet on screener is annual only
         if period == "quarter":
             logger.info("Screener does not provide quarterly balance sheets")
             return []
 
         models: List[BalanceSheetModel] = []
         year_cols = [c for c in df.columns[1:] if self._extract_fiscal_year(c)]
+        year_cols = list(reversed(year_cols))  # newest first
 
         for col in year_cols[:limit]:
             fiscal_year = self._extract_fiscal_year(col)
             if not fiscal_year:
                 continue
 
-            # Screener Balance Sheet rows:
-            #   Total Assets, Current Assets, Cash Equivalents,
-            #   Total Liabilities, Current Liabilities, Long Term Borrowings,
-            #   Equity / Shareholder's Equity / Total Equity
+            # ─── Parse individual components ───
+            equity_capital = self._get_row_value(df, "equity capital", col)
+            reserves = self._get_row_value(df, "reserves", col)
+            borrowings = self._get_row_value(df, "borrowings", col)
+            other_liabilities = self._get_row_value(df, "other liabilities", col)
+            total_assets = self._get_row_value(df, "total assets", col)
+
+            # Fixed assets section
+            fixed_assets = self._get_row_value(df, "fixed assets", col)
+            investments = self._get_row_value(df, "investments", col)
+            other_assets = self._get_row_value(df, "other assets", col)
+
+            # ─── Compute derived values ───
+            # Shareholders equity = Equity Capital + Reserves
+            shareholders_equity = None
+            if equity_capital is not None and reserves is not None:
+                shareholders_equity = equity_capital + reserves
+            elif reserves is not None:
+                shareholders_equity = reserves  # reserves alone as fallback
+
+            # True total liabilities = Borrowings + Other Liabilities
+            # (NOT screener's "Total Liabilities" which is the balancing figure)
+            total_liabilities = None
+            if borrowings is not None and other_liabilities is not None:
+                total_liabilities = borrowings + other_liabilities
+            elif borrowings is not None:
+                total_liabilities = borrowings
+            elif total_assets is not None and shareholders_equity is not None:
+                # Accounting identity: Assets = Equity + Liabilities
+                total_liabilities = total_assets - shareholders_equity
+
             models.append(
                 BalanceSheetModel(
                     symbol=symbol,
@@ -329,13 +384,13 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
                     fiscal_year=fiscal_year,
                     fiscal_quarter=None,
                     effective_date=date(fiscal_year, 3, 31),
-                    total_assets=self._get_row_value(df, "total assets", col),
-                    current_assets=self._get_row_value(df, "current assets", col),
+                    total_assets=total_assets,
+                    current_assets=other_assets,  # Screener's "Other Assets" ≈ current assets
                     cash_and_equivalents=self._get_row_value(df, "cash equivalents", col),
-                    total_liabilities=self._get_row_value(df, "total liabilities", col),
-                    current_liabilities=self._get_row_value(df, "current liabilities", col),
-                    long_term_debt=self._get_row_value(df, "borrowings", col),
-                    shareholders_equity=self._get_row_value(df, "equity", col),
+                    total_liabilities=total_liabilities,
+                    current_liabilities=other_liabilities,  # Approximate
+                    long_term_debt=borrowings,
+                    shareholders_equity=shareholders_equity,
                 )
             )
 
@@ -345,7 +400,6 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
         self, symbol: str, period: str = "annual", limit: int = 5
     ) -> List[CashFlowStatementModel]:
         symbol = self._normalize_for_screener(symbol)
-
         sections = self._parse_all_sections(symbol)
         df = sections.get("Cash Flows")
 
@@ -359,16 +413,21 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
 
         models: List[CashFlowStatementModel] = []
         year_cols = [c for c in df.columns[1:] if self._extract_fiscal_year(c)]
+        year_cols = list(reversed(year_cols))  # newest first
 
         for col in year_cols[:limit]:
             fiscal_year = self._extract_fiscal_year(col)
             if not fiscal_year:
                 continue
 
-            # Screener Cash Flow rows:
-            #   Cash from Operating Activity, Cash from Investing Activity,
-            #   Cash from Financing Activity, Net Cash Flow
-            #   Fixed Assets Purchased (≈ capex, sometimes under investing breakdown)
+            # Try multiple possible row labels for capex
+            capex = (
+                self._get_row_value(df, "fixed assets purchased", col)
+                or self._get_row_value(df, "fixed assets", col)
+                or self._get_row_value(df, "purchase of fixed assets", col)
+                or self._get_row_value(df, "capex", col)
+            )
+
             models.append(
                 CashFlowStatementModel(
                     symbol=symbol,
@@ -377,7 +436,7 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
                     fiscal_quarter=None,
                     effective_date=date(fiscal_year, 3, 31),
                     operating_cash_flow=self._get_row_value(df, "operating activity", col),
-                    capital_expenditure=self._get_row_value(df, "fixed assets purchased", col),
+                    capital_expenditure=capex,
                     investing_cash_flow=self._get_row_value(df, "investing activity", col),
                     financing_cash_flow=self._get_row_value(df, "financing activity", col),
                     net_cash_flow=self._get_row_value(df, "net cash flow", col),

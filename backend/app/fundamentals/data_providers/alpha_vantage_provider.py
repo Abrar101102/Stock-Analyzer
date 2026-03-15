@@ -37,6 +37,7 @@ class AlphaVantageProvider(BaseFundamentalProvider):
         """
         Make HTTP request to Alpha Vantage API
         """
+        print(f"Making API request to Alpha Vantage: function={function}, symbol={symbol}")
         params = {
             "function": function,
             "symbol": symbol,
@@ -122,7 +123,7 @@ class AlphaVantageProvider(BaseFundamentalProvider):
         Fetch balance sheet data from Alpha Vantage
         """
         data = self._make_request("BALANCE_SHEET", symbol)
-
+        print("Balance sheet data:", data)
         if not data:
             logger.warning(
                 "Alpha Vantage returned no balance sheet data",
@@ -211,7 +212,7 @@ class AlphaVantageProvider(BaseFundamentalProvider):
         Fetch income statement data from Alpha Vantage
         """
         data = self._make_request("INCOME_STATEMENT", symbol)
-
+        print("Income statement data:", data)
         if not data:
             logger.warning(
                 "Alpha Vantage returned no income statement data",
@@ -291,7 +292,7 @@ class AlphaVantageProvider(BaseFundamentalProvider):
         Fetch cash flow statement data from Alpha Vantage
         """
         data = self._make_request("CASH_FLOW", symbol)
-
+        print("Cash flow data:", data)
         if not data:
             logger.warning(
                 "Alpha Vantage returned no cash flow data",
