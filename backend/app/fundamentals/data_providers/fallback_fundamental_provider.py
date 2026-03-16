@@ -7,18 +7,29 @@ from app.fundamentals.data_providers.alpha_vantage_provider import AlphaVantageP
 from app.fundamentals.models.balance_sheet_model import BalanceSheetModel
 from app.fundamentals.models.income_statement_model import IncomeStatementModel
 from app.fundamentals.models.cash_flow_model import CashFlowStatementModel
+from app.registry.symbol_resolver import SymbolResolver
+from app.fundamentals.data_providers.screener_provider import ScreenerFundamentalProvider
 
 logger = logging.getLogger(__name__)
+
+# Map provider class → provider name for symbol resolution
+PROVIDER_NAME_MAP = {
+    AlphaVantageProvider: "alpha_vantage",
+    YahooFundamentalProvider: "yahoo",
+}
 
 
 class FallbackFundamentalProvider(BaseFundamentalProvider):
     """
     Tries providers in order and falls back when a provider fails or returns no data.
-    Default order: Yahoo -> Alpha Vantage.
+    Default order: Alpha Vantage -> Yahoo.
     """
-
     def __init__(self, providers: List[BaseFundamentalProvider] | None = None):
-        self.providers = providers or [AlphaVantageProvider(),YahooFundamentalProvider() ]
+        self.providers = providers or [
+            ScreenerFundamentalProvider(), # Fallback: comprehensive scraping
+            YahooFundamentalProvider(),     # Primary: fast API
+             
+        ]
 
     def _invoke_provider(self, provider: BaseFundamentalProvider, method_name: str, symbol: str, period: str, limit: int):
         method = getattr(provider, method_name)
@@ -83,8 +94,3 @@ class FallbackFundamentalProvider(BaseFundamentalProvider):
 
     def get_cash_flows(self, symbol: str, period: str = "annual", limit: int = 5) -> List[CashFlowStatementModel]:
         return self._fetch_with_fallback("get_cash_flows", symbol, period, limit)
-
-    def get_available_years(self, symbol: str) -> List[int]:
-        statements = self.get_income_statements(symbol, period="annual", limit=20)
-        years = sorted({x.fiscal_year for x in statements if x.fiscal_year is not None}, reverse=True)
-        return years

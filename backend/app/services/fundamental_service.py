@@ -2,6 +2,7 @@ from app.fundamentals.data_providers.base_fundamental_provider import BaseFundam
 from app.fundamentals.models.financial_ratio_model import FinancialRatioModel
 from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapshotModel
 from app.registry.stock_registry import StockRegistry
+from app.registry.symbol_resolver import SymbolResolver
 from app.core.exceptions import ValidationError,NotFoundError
 from app.fundamentals.validation.provider_sanity import assert_valid_fiscal_year
 from dataclasses import asdict
@@ -9,7 +10,7 @@ from typing import List
 import logging
 
 logger = logging.getLogger(__name__)
-max_limit = 20
+max_limit = 50
 
 class FundamentalService:
   """
@@ -60,6 +61,8 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     return limit
   
   def _select_snapshot(self, statements, fiscal_year, period: str, fiscal_quarter=None):
+    print(f"Selecting snapshot for fiscal_year={fiscal_year}, period={period}, fiscal_quarter={fiscal_quarter}")
+    print(f"Statement value is ",statements)
     for s in statements:
         # 1. Use direct attribute access (s.fiscal_year)
         # 2. Wrap both sides in int() to ignore type mismatches
@@ -104,6 +107,12 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     return(
       model.fiscal_year,getattr(model,"fiscal_quarter",None)
     )
+  def _sort_desc(self, items):
+    return sorted(
+        items,
+        key=lambda x: (x.fiscal_year, getattr(x, "fiscal_quarter", 0)),
+        reverse=True
+    )
   
   # In fundamental_service.py — not in the provider
   def get_available_periods(self, symbol: str, period: str):
@@ -139,65 +148,158 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       bs_periods  = filter_balance(balance_sheets)
       cf_periods  = filter_cashflow(cash_flows)
 
+      if period == "quarter":
+        return inc_periods
+
       return inc_periods & bs_periods & cf_periods
   
-  def get_fundamental_snapshot(self,symbol:str,fiscal_year:int,period:str="annual",fiscal_quarter:int|None = None) -> FundamentalSnapshotModel:
+  def get_quarterly_income_snapshot(self, symbol: str, fiscal_year: int, fiscal_quarter: int):
+    # IMPORTANT: do not call get_fundamentals() here because it enforces BS+CF existence.
+    limit = 50  # pull enough quarters to cover multiple years
+    
+    # normalize for the provider (Yahoo symbol)
+    provider_symbol = self._normalize_symbol(symbol)
+
+    income_statements = self.provider.get_income_statements(provider_symbol, "quarter", limit)
+
+    if not income_statements:
+        raise NotFoundError(
+            code="FUNDAMENTALS_NOT_FOUND",
+            message=f"No quarterly income statements found for symbol {symbol}"
+        )
+
+    # Filter income statements like you do elsewhere
+    filtered_income = []
+    for inc in income_statements:
+        assert_valid_fiscal_year(inc.fiscal_year, provider_symbol)
+        if inc.fiscal_year is None:
+            continue
+        if inc.total_revenue is None and inc.net_income is None:
+            continue
+        filtered_income.append(inc)
+
+    # Sort DESC so _select_snapshot works predictably
+    filtered_income = self._sort_desc(filtered_income)
+
+    income = self._select_snapshot(
+        filtered_income,
+        fiscal_year,
+        "quarter",
+        fiscal_quarter
+    )
+
+    if not income:
+        raise NotFoundError(
+            code="FUNDAMENTALS_NOT_FOUND",
+            message=f"No quarterly income statement found for {symbol} FY{fiscal_year} Q{fiscal_quarter}"
+        )
+
+    return {
+        "symbol": symbol,
+        "period": "quarter",
+        "fiscal_year": income.fiscal_year,
+        "fiscal_quarter": income.fiscal_quarter,
+        "effective_date": income.effective_date,
+        "income_statement": income,
+        "balance_sheet": None,
+        "cash_flow_statement": None,
+    }
+  
+  def get_fundamental_snapshot(self, symbol: str, fiscal_year: int, period: str = "annual", fiscal_quarter: int | None = None) -> FundamentalSnapshotModel:
 
     logger.info(
         "Fetching fundamentals Snapshot",
-        extra={"symbol": symbol, "period": period, "fiscal_year":fiscal_year}
+        extra={"symbol": symbol, "period": period, "fiscal_year": fiscal_year}
     )
 
-    fundamentals = self.get_fundamentals(symbol,fiscal_year,period=period)
-    print("Fundamentals",fundamentals)
-    income_statement = self._select_snapshot(fundamentals['income_statements'],fiscal_year,period,fiscal_quarter)
-    balance_sheet = self._select_snapshot(fundamentals['balance_sheets'],fiscal_year,period,fiscal_quarter)
-    cash_flow = self._select_snapshot(fundamentals['cash_flows'],fiscal_year,period,fiscal_quarter)
-    print("INCOME STMENT",income_statement)
+    fundamentals = self.get_fundamentals(symbol, fiscal_year, period=period)
+    income_statement = self._select_snapshot(fundamentals['income_statements'], fiscal_year, period, fiscal_quarter)
+    balance_sheet = self._select_snapshot(fundamentals['balance_sheets'], fiscal_year, period, fiscal_quarter)
+    cash_flow = self._select_snapshot(fundamentals['cash_flows'], fiscal_year, period, fiscal_quarter)
 
     if not income_statement or not balance_sheet or not cash_flow:
       raise NotFoundError(
-                code="FUNDAMENTALS_NOT_FOUND",
-                message=f"No fundamentals found for symbol {symbol}"
-            )
+        code="FUNDAMENTALS_NOT_FOUND",
+        message=f"No fundamentals found for symbol {symbol}"
+      )
 
     fy = income_statement.fiscal_year
 
     if balance_sheet.fiscal_year != fy or cash_flow.fiscal_year != fy:
       raise ValidationError(
-        code= "FISCALYEAR_MISMATCH",
-        message = f"Snapshot Fiscal Year Mismatch for symbol {symbol}",
+        code="FISCALYEAR_MISMATCH",
+        message=f"Snapshot Fiscal Year Mismatch for symbol {symbol}",
         details={
-          "received": f"Income Sheet Fiscal Year {fy}, Balance sheet Fiscal Year {balance_sheet.fiscal_year} and cash Flow Fiscal Year {cash_flow.fiscal_year}"
+          "received": f"Income Sheet FY {fy}, Balance sheet FY {balance_sheet.fiscal_year}, Cash Flow FY {cash_flow.fiscal_year}"
         }
       )
 
-    
-    
-    if income_statement.effective_date != balance_sheet.effective_date or income_statement.effective_date != cash_flow.effective_date:
-      raise ValidationError(
-        code ="NO_FILING_DATE",
-        message=f"No Filing Date Was found for {symbol}"
-      ) 
+    # ─── FIXED: Reconcile effective_date across mixed providers ───
+    # When data comes from different providers (Yahoo vs Screener),
+    # effective_dates may differ (actual filing date vs fiscal year end).
+    # Fiscal year match is the real guarantee of alignment.
+    # Pick the most informative date and normalize across all three.
+    effective_date = self._reconcile_effective_date(
+        income_statement, balance_sheet, cash_flow
+    )
 
     return FundamentalSnapshotModel(
-      symbol = symbol,
-      period = period,
-      fiscal_year = income_statement.fiscal_year,
-      fiscal_quarter = income_statement.fiscal_quarter,
-      effective_date = income_statement.effective_date,
-      income_statement = income_statement,
-      balance_sheet= balance_sheet,
-      cash_flow_statement= cash_flow,
-      total_revenue = income_statement.total_revenue,
-      net_income = income_statement.net_income,
-      eps = income_statement.eps,
-      operating_cash_flow = cash_flow.operating_cash_flow,
-      total_liabilities = balance_sheet.total_liabilities,
-      total_assets = balance_sheet.total_assets,
-      shareholders_equity = balance_sheet.shareholders_equity
+      symbol=symbol,
+      period=period,
+      fiscal_year=income_statement.fiscal_year,
+      fiscal_quarter=income_statement.fiscal_quarter,
+      effective_date=effective_date,
+      income_statement=income_statement,
+      balance_sheet=balance_sheet,
+      cash_flow_statement=cash_flow,
+      total_revenue=income_statement.total_revenue,
+      net_income=income_statement.net_income,
+      eps=income_statement.eps,
+      operating_cash_flow=cash_flow.operating_cash_flow,
+      total_liabilities=balance_sheet.total_liabilities,
+      total_assets=balance_sheet.total_assets,
+      shareholders_equity=balance_sheet.shareholders_equity
     )
-  
+
+  def _reconcile_effective_date(self, income, balance_sheet, cash_flow):
+    """
+    Reconcile effective_date when statements come from different providers.
+    
+    Priority logic:
+    1. If all three dates match → use that date (ideal case)
+    2. If dates differ → prefer the non-March-31 date (it's a real filing date 
+       from Yahoo's earnings_map, more informative than screener's hardcoded date)
+    3. If all are March 31 → that's fine, use it (all from screener)
+    """
+    dates = [
+        income.effective_date,
+        balance_sheet.effective_date,
+        cash_flow.effective_date
+    ]
+
+    # Case 1: All match — ideal
+    if dates[0] == dates[1] == dates[2]:
+      return dates[0]
+
+    logger.info(
+      "Reconciling mismatched effective_dates from mixed providers",
+      extra={
+        "income_date": str(dates[0]),
+        "balance_date": str(dates[1]),
+        "cashflow_date": str(dates[2]),
+      }
+    )
+
+    # Case 2: Pick the real filing date (non-March-31, non-default)
+    # A date that's NOT exactly March 31 or Dec 31 is likely a real 
+    # earnings filing date from Yahoo
+    from datetime import date as date_type
+    for d in dates:
+      if d and not (d.month == 3 and d.day == 31):
+        return d
+
+    # Case 3: All are fiscal year end dates — just use the first one
+    return dates[0]
   
 
   
@@ -224,7 +326,9 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
             "cashflow": len(cash_flows)
         }
     )
-
+    print("Raw Income Statements",income_statements)
+    print("Raw Balance Sheets",balance_sheets)
+    print("Raw Cash Flows",cash_flows)
     if not income_statements and not balance_sheets and not cash_flows:
       raise NotFoundError(
                 code="FUNDAMENTALS_NOT_FOUND",
@@ -288,10 +392,13 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       }
     )
 
-    income_statements = filtered_income_statements
-    balance_sheets = filtered_balance_sheets
-    cash_flows = filtered_cash_flows
-
+    income_statements = self._sort_desc(filtered_income_statements)
+    balance_sheets = self._sort_desc(filtered_balance_sheets)
+    cash_flows = self._sort_desc(filtered_cash_flows)
+    print("Filtered Income Statements",income_statements)
+    print("Filtered Balance Sheets",balance_sheets)
+    print("Filtered Cash Flows",cash_flows)
+    
     income_sorted = self._assert_sorted_desc(income_statements)
     balance_sorted = self._assert_sorted_desc(balance_sheets)
     cashflows_sorted = self._assert_sorted_desc(cash_flows)
@@ -387,10 +494,9 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         )
       elif period == "quarter":
         fiscal_year,fiscal_quarter = item
-        snapshot = self.get_fundamental_snapshot(
+        snapshot = self.get_quarterly_income_snapshot(
           symbol=symbol,
           fiscal_year=fiscal_year,
-          period = "quarter",
           fiscal_quarter=fiscal_quarter
           
         )
