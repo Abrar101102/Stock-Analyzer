@@ -1,4 +1,4 @@
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from datetime import date
 import json
 from app.models.quarterly_snapshot_model import QuarterlyFundamentalSnapshot
@@ -11,13 +11,17 @@ class QuarterlyIngestionService:
   def json_serial(self,obj):
     if isinstance(obj,date):
       return obj.isoformat()
+    if is_dataclass(obj):
+        return asdict(obj)
+
+    if hasattr(obj, "__dict__"):
+        return obj.__dict__
     raise TypeError(f"Type {type(obj)} is not serializable")
   
   def ingest_symbol_quarter(self,db,symbol:str,fiscal_year:int,fiscal_quarter:int):
-    snapshot = self.provider_service.get_fundamental_snapshot(
+    snapshot = self.provider_service.get_quarterly_income_snapshot(
       symbol=symbol,
       fiscal_year=fiscal_year,
-      period = "quarter",
       fiscal_quarter=fiscal_quarter
     )
 
@@ -50,15 +54,17 @@ class QuarterlyIngestionService:
       )
     
     ingested_periods = []
+    print(f"Backfilling Missing Quarters for {symbol}: {missing_snapshots}")
 
     for snapshot in missing_snapshots:
       ingested = self.persistance_service.ingest_quarterly_snapshot(
         db=db,
-        symbol= snapshot.symbol,
-        fiscal_year = snapshot.fiscal_year,
-        fiscal_quarter = snapshot.fiscal_quarter,
-        effective_date = snapshot.effective_date,
-        data = json.dumps(asdict(snapshot),default=self.json_serial)
+        symbol = snapshot["symbol"],
+        fiscal_year = snapshot["fiscal_year"],
+        fiscal_quarter = snapshot["fiscal_quarter"],
+        effective_date = snapshot["effective_date"],
+        data = json.dumps(snapshot, default=self.json_serial)
+        
       )
 
       ingested_periods.append(

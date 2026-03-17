@@ -2,7 +2,14 @@ from typing import Dict,List
 from app.registry.stock_registry import StockRegistry
 from app.data_providers.base_provider import MarketDataProvider
 from app.data_sources.market_data_source import MarketDataSource
+from app.registry.symbol_resolver import SymbolResolver
 from app.core.exceptions import NotFoundError
+
+# Map provider class → provider name for symbol resolution
+PROVIDER_NAME_MAP = {
+    "YahooMarketDataProvider": "yahoo",
+    "AlphaVantageProvider": "alpha_vantage",
+}
 
 class StockService:
   """
@@ -10,6 +17,9 @@ class StockService:
   """
   def __init__(self,provider:MarketDataProvider):
     self.provider = provider
+    self._provider_name = PROVIDER_NAME_MAP.get(
+      provider.__class__.__name__, "yahoo"
+    )
 
   def get_price_history(self,symbol:str,period:str="6mo")->List[Dict]:
     if not StockRegistry.exists(symbol):
@@ -19,6 +29,7 @@ class StockService:
         details = {"received":f"Stock symbol {symbol} not found in registry."}
       )
     
-    stock = StockRegistry.get_stock(symbol)
-
-    return self.provider.get_price_history(stock.yahoo_symbol,period)
+    # Resolve to the correct format for THIS provider
+    resolved = SymbolResolver.resolve(symbol, self._provider_name)
+    print("Resolved symbol for provider", self._provider_name, ":", resolved)
+    return self.provider.get_price_history(resolved,period)
