@@ -107,6 +107,70 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
                 logger.error(f"Failed to fetch screener page: {e}")
 
         return None
+    def get_company_overview(self, symbol: str) -> dict:
+        """
+        Scrape top-level company overview (Market Cap, P/E, Price, etc.)
+        from the top header of the screener.in page.
+        """
+        symbol = self._normalize_for_screener(symbol)
+        soup = self._fetch_page(symbol)
+
+        if not soup:
+            raise ValueError(f"Could not fetch or parse page for {symbol}")
+
+        overview = {
+            "symbol": symbol,
+            "name": symbol,
+            "sector": "N/A",
+            "industry": "N/A",
+            "metrics": {}
+        }
+
+        # 1. Get the company name from the h1 tag
+        name_tag = soup.find("h1", class_="h2")
+        if name_tag:
+            overview["name"] = name_tag.text.strip()
+
+        # 2. Extract top-level ratios from the top-ratios list
+        ratios_ul = soup.find("ul", id="top-ratios")
+        if ratios_ul:
+            # Map screener text labels to our API keys
+            metric_map = {
+                "Market Cap": "market_cap",
+                "Current Price": "price",
+                "High / Low": "high_low",
+                "Stock P/E": "pe_ratio",
+                "Dividend Yield": "dividend_yield",
+                "ROCE": "roce",
+                "ROE": "roe",
+                "Face Value": "face_value"
+            }
+
+            for li in ratios_ul.find_all("li"):
+                name_span = li.find("span", class_="name")
+                value_span = li.find("span", class_="number")
+                
+                if name_span and value_span:
+                    label = name_span.text.strip()
+                    val_text = value_span.text.replace(",", "").strip()
+                    
+                    try:
+                        # Convert to float if possible
+                        val = float(val_text)
+                    except ValueError:
+                        val = val_text # Keep as string if it's "150 / 120" (High/Low)
+
+                    # Assign to correct field
+                    if label in metric_map:
+                        key = metric_map[label]
+                        if key == "price":
+                            overview["price"] = val
+                        elif key == "market_cap":
+                            overview["market_cap"] = val
+                        else:
+                            overview["metrics"][key] = val
+
+        return overview
 
     def _parse_all_sections(self, symbol: str) -> Dict[str, pd.DataFrame]:
         """
