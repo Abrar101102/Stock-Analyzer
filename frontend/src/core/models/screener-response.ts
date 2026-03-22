@@ -23,7 +23,7 @@ export interface ApiError {
 
 export interface ScreenerData {
   items: ScreenerItem[];
-  count?: number;
+  count?: number | null;
 }
 
 export interface ScreenerResponse {
