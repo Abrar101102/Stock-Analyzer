@@ -108,10 +108,6 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
 
         return None
     def get_company_overview(self, symbol: str) -> dict:
-        """
-        Scrape top-level company overview (Market Cap, P/E, Price, etc.)
-        from the top header of the screener.in page.
-        """
         symbol = self._normalize_for_screener(symbol)
         soup = self._fetch_page(symbol)
 
@@ -126,13 +122,39 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
             "metrics": {}
         }
 
-        # 1. Get the company name from the h1 tag
+        # Company name
         name_tag = soup.find("h1", class_="h2")
         if name_tag:
             overview["name"] = name_tag.text.strip()
 
-        # 2. Extract top-level ratios from the top-ratios list
+        # ── ADD THIS: Sector & Industry from company-info section ──
+        company_info = soup.find("div", class_="company-info")
+        if company_info:
+            for a_tag in company_info.find_all("a"):
+                href = a_tag.get("href", "")
+                text = a_tag.text.strip()
+                if "/industry/" in href:
+                    overview["industry"] = text
+                elif "/sector/" in href:
+                    overview["sector"] = text
+
+        # Fallback: check breadcrumb / sub-links area
+        if overview["sector"] == "N/A":
+            for a_tag in soup.find_all("a", href=True):
+                href = a_tag.get("href", "")
+                if "/sector/" in href and a_tag.text.strip():
+                    overview["sector"] = a_tag.text.strip()
+                    break
+        if overview["industry"] == "N/A":
+            for a_tag in soup.find_all("a", href=True):
+                href = a_tag.get("href", "")
+                if "/industry/" in href and a_tag.text.strip():
+                    overview["industry"] = a_tag.text.strip()
+                    break
+
+        # ... rest of your existing ratios scraping code unchanged ...
         ratios_ul = soup.find("ul", id="top-ratios")
+        # (keep everything below this line exactly as before)
         if ratios_ul:
             # Map screener text labels to our API keys
             metric_map = {

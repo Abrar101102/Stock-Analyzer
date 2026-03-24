@@ -79,34 +79,42 @@ class TechnicalOrchestratorService:
             "period": period,
             "count": len(df),
             "source": "live_computed",
-            "data": df.tail(100).to_dict(orient="records"),
+            "data": df.to_dict(orient="records"),
             "signals": signals,
         }
 
-    def _get_cached_indicators(
-        self, db: Session, symbol: str, staleness_days: int
-    ) -> Optional[List]:
+    def _get_cached_indicators(self, db: Session, symbol: str, staleness_days:int) -> Optional[List]:
         """
-        Check DB for indicators computed within staleness_days.
-        Returns list of TechnicalIndicator rows or None.
+        Two-step check:
+        1. Is our data fresh? (check if latest row is within staleness_days)
+        2. If yes, return the FULL history (up to 500 rows), not just recent rows.
         """
         cutoff_date = date.today() - timedelta(days=staleness_days)
 
+        # Step 1: Check freshness — does a recent row exist?
+        latest_row = (
+            db.query(TechnicalIndicator)
+            .filter(TechnicalIndicator.symbol == symbol)
+            .order_by(TechnicalIndicator.date.desc())
+            .first()
+        )
+
+        if not latest_row:
+            return None  # No data at all → fetch live
+
+        if latest_row.date < cutoff_date:
+            return None  # Data is stale → fetch live
+
+        # Step 2: Data is fresh — return FULL history for charting
         rows = (
             db.query(TechnicalIndicator)
-            .filter(
-                TechnicalIndicator.symbol == symbol,
-                TechnicalIndicator.date >= cutoff_date,
-            )
-            .order_by(TechnicalIndicator.date.desc())
-            .limit(100)
+            .filter(TechnicalIndicator.symbol == symbol)
+            .order_by(TechnicalIndicator.date.asc())   # oldest → newest for chart
+            .limit(500)
             .all()
         )
 
-        if not rows:
-            return None
-
-        return rows
+        return rows if rows else None
 
     def _format_response(self, symbol: str, period: str, rows: List) -> Dict:
         """Format DB rows into API response."""
@@ -132,7 +140,7 @@ class TechnicalOrchestratorService:
             })
 
         # Compute signals from latest cached data
-        latest = rows[0]
+        latest = rows[-1]
         signals = {}
         if latest.rsi_14 is not None:
             signals["rsi"] = (
