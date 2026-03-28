@@ -1,7 +1,7 @@
 <div class="dashboard">
   <h1>Stock Analyzer</h1>
 
-  <!-- FIXED: Entire form is properly wrapped now -->
+  <!-- ── Search form ─────────────────────────────────────────────────────── -->
   <form [formGroup]="form" (ngSubmit)="onAnalyze()" class="analyze-form">
     <div class="field">
       <label for="symbol">Symbol</label>
@@ -10,92 +10,88 @@
         type="text"
         formControlName="symbol"
         (input)="onSymbolInput()"
-        placeholder="AAPL"
+        placeholder="TCS, RELIANCE, AAPL"
+        autocomplete="off"
+        spellcheck="false"
       />
-      <small class="error" *ngIf="form.controls.symbol.touched && form.controls.symbol.invalid">
-        Enter a valid ticker.
-      </small>
+      @if (form.controls['symbol'].touched && form.controls['symbol'].invalid) {
+        <small class="error">Enter a valid ticker (e.g. TCS, AAPL).</small>
+      }
     </div>
 
     <div class="field">
       <label for="timeframe">Timeframe</label>
       <select id="timeframe" formControlName="timeframe">
-        <option *ngFor="let tf of timeframes" [value]="tf">{{ tf }}</option>
+        @for (tf of timeframes; track tf) {
+          <option [value]="tf">{{ tf }}</option>
+        }
       </select>
     </div>
 
-    <button type="submit" [disabled]="loading">
-      {{ loading ? 'Analyzing...' : 'Analyze' }}
+    <button type="submit" [disabled]="loading()">
+      {{ loading() ? 'Analyzing…' : 'Analyze' }}
     </button>
   </form>
 
-  <div class="status error" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <!-- ── Error banner ────────────────────────────────────────────────────── -->
+  @if (errorMsg()) {
+    <div class="status error">{{ errorMsg() }}</div>
+  }
 
-  <div class="cards">
-    <!-- Technical Card -->
-    <section class="card" *ngIf="technicalResponse as td">
-      <h2>Technical Analysis</h2>
-      <p><strong>Symbol:</strong> {{ td.symbol }}</p>
+  <!-- ── Main content ────────────────────────────────────────────────────── -->
+  <div class="main-grid">
+    <!-- Chart widget (full width) -->
+    @if (response) {
+      <app-chart-widget
+        class="chart-card"
+        [ohlcv]="ohlcvData()"
+        [indicators]="indicators()"
+        [symbol]="activeSymbol()"
+        [timeframe]="form.value.timeframe"
+      />
+    }
 
-      <!-- Adjusted to read properties directly from td -->
-      <p><strong>Trend:</strong> {{ td.trend || 'N/A' }}</p>
-      <p><strong>Summary Score:</strong> {{ td.summary_score ?? 'N/A' }}</p>
+    <!-- Bottom cards row -->
+    <div class="cards">
+      <!-- Signals card -->
+      <section class="card">
+        <h2>Signals</h2>
+        @if (signalEntries().length) {
+          <ul class="signal-list">
+            @for (entry of signalEntries(); track entry[0]) {
+              <li>
+                <span class="signal-key">{{ entry[0] }}</span>
+                <span class="signal-badge" [class]="entry[1].toLowerCase()">{{ entry[1] }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="muted">No signals — run an analysis first.</p>
+        }
+      </section>
 
-      <h3>Indicators</h3>
-      <table *ngIf="indicatorEntries().length; else noIndicatorsTpl">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of indicatorEntries()">
-            <td>{{ item[0] }}</td>
-            <td>{{ item[1] }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h3>Signals</h3>
-      <ul *ngIf="td.signals; else noSignalsTpl">
-        <!-- Assuming signals is an object like { "RSI": "buy", "MACD": "sell" } -->
-        <li *ngFor="let s of td.signals | keyvalue">
-          <strong>{{ s.key }}:</strong> {{ s.value }}
-        </li>
-      </ul>
-    </section>
-
-    <!-- Screener Card -->
-    <section class="card" *ngIf="screenerResponse as screener">
-      <h2>Screener</h2>
-      <p><strong>Provider:</strong> {{ screener.provider || 'N/A' }}</p>
-      <p><strong>Status:</strong> {{ screener.status }}</p>
-
-      <ng-container *ngIf="screener.data as sd">
-        <table *ngIf="sd.items?.length; else noScreenerTpl">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Market Cap</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of sd.items">
-              <td>{{ item.symbol }}</td>
-              <td>{{ item.name || '-' }}</td>
-              <td>{{ item.price ?? '-' }}</td>
-              <td>{{ item.market_cap ?? '-' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </ng-container>
-    </section>
+      <!-- Screener card -->
+      <!-- Replace the screener card section: -->
+      <!-- Replace the screener card section entirely: -->
+      <section class="card">
+        <h2>Overview</h2>
+        @if (screener(); as sc) {
+          <p class="provider-badge">{{ sc.provider }}</p>
+          <p class="company-name">{{ sc.name }}</p>
+          @if (screenerEntries().length) {
+            <dl class="kv-list">
+              @for (entry of screenerEntries(); track entry[0]) {
+                <div class="kv-row">
+                  <dt>{{ entry[0] | titlecase }}</dt>
+                  <dd>{{ entry[1] }}</dd>
+                </div>
+              }
+            </dl>
+          }
+        } @else {
+          <p class="muted">No data — run an analysis first.</p>
+        }
+      </section>
+    </div>
   </div>
 </div>
-
-<ng-template #noIndicatorsTpl><p>No indicators available.</p></ng-template>
-<ng-template #noSignalsTpl><p>No signals available.</p></ng-template>
-<ng-template #noScreenerTpl><p>No screener items available.</p></ng-template>

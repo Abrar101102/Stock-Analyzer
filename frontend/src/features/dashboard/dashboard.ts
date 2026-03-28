@@ -1,106 +1,150 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
+import { forkJoin, finalize } from 'rxjs';
 import { StockApi } from '../../core/api/stock-api';
+import { ChartWidgetComponent, OhlcvBar, IndicatorRow } from '../chart-widget/chart.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ChartWidgetComponent],
   templateUrl: './dashboard.html',
-  styleUrl: './dashboard.scss'
+  styleUrl: './dashboard.scss',
 })
 export class DashboardComponent {
   readonly timeframes = ['1mo', '3mo', '6mo', '1y', '2y', '5y'];
 
-  loading = false;
-  errorMessage = '';
+  // ── State (signals — no need for cdr.detectChanges()) ─────────────────────
+  loading     = signal(false);
+  errorMsg    = signal('');
+  ohlcvData   = signal<OhlcvBar[]>([]);
+  indicators  = signal<IndicatorRow[]>([]);
+  screener    = signal<any>(null);
+  signals     = signal<Record<string, string>>({});
+  activeSymbol = signal('');
 
-  technicalResponse: any = null;
-  screenerResponse: any = null;
+  // ── Form ──────────────────────────────────────────────────────────────────
+  form: FormGroup;
+  response: boolean = false;
 
-  form: any;
-
-  constructor(
-    private fb: FormBuilder,
-    private stockApi: StockApi,
-    private cdr: ChangeDetectorRef // <-- 1. Injected ChangeDetectorRef
-  ) {
+  constructor(private fb: FormBuilder, private stockApi: StockApi) {
     this.form = this.fb.group({
-      symbol: ['', [Validators.required, Validators.pattern(/^[A-Za-z.\-]{1,10}$/)]],
-      timeframe: ['6mo', Validators.required] 
+      symbol:    ['', [Validators.required, Validators.pattern(/^[A-Za-z.\-]{1,10}$/)]],
+      timeframe: ['6mo', Validators.required],
     });
   }
 
+  // ── Analyze ───────────────────────────────────────────────────────────────
+
   onAnalyze(): void {
-    this.errorMessage = '';
-    this.technicalResponse = null;
-    this.screenerResponse = null;
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    const symbol = (this.form.value.symbol ?? '').toUpperCase().trim();
+    const symbol    = (this.form.value.symbol ?? '').toUpperCase().trim();
     const timeframe = this.form.value.timeframe ?? '6mo';
 
-    this.loading = true;
+    this.loading.set(true);
+    this.errorMsg.set('');
+    this.activeSymbol.set(symbol);
 
-    this.stockApi.getTechnical(symbol, timeframe).subscribe({
-      next: (technical) => {
-        this.technicalResponse = technical;
+    // Replace nested subscribes with forkJoin — all 3 fire in parallel
+    forkJoin({
+      ohlcv:      this.stockApi.getPriceHistory(symbol, timeframe),
+      technical:  this.stockApi.getTechnical(symbol, timeframe),
+      screener:   this.stockApi.getScreener(symbol),
+      signals:    this.stockApi.getSignals(symbol, timeframe),
+    })
+    .pipe(finalize(() => this.loading.set(false)))
+    .subscribe({
+      next: ({ ohlcv, technical, screener, signals }) => {
+        console.log('OHLCV:', ohlcv);
+  console.log('Technical:', technical);
+  console.log('Screener:', screener);
+  console.log('Signals:', signals);
 
-        this.stockApi.getScreener(symbol).subscribe({
-          next: (screener) => {
-            this.screenerResponse = screener;
-            this.loading = false;
-            this.cdr.detectChanges(); // <-- 2. Force UI Update
-          },
-          error: (err) => {
-            this.errorMessage = this.extractError(err) || 'Failed to fetch screener data.';
-            this.loading = false;
-            this.cdr.detectChanges(); // <-- Force UI Update
-          }
-        });
-      },
-      error: (err) => {
-        this.loading = false;
-        this.errorMessage = this.extractError(err) || 'Failed to fetch technical analysis.';
-        this.cdr.detectChanges(); // <-- Force UI Update
-      }
+  // ✅ OHLCV — correct
+  this.ohlcvData.set(ohlcv?.data ?? []);
+
+  // ✅ Remap technical field names to match IndicatorRow interface
+  const rawIndicators = Array.isArray(technical?.data) ? technical.data : [];
+  const remapped = rawIndicators.map((row: any) => ({
+    date:         row.date,
+    sma_20:       row.sma_20       ?? null,
+    sma_50:       row.sma_50       ?? null,
+    ema_12:       row.ema_12       ?? null,
+    ema_26:       row.ema_26       ?? null,
+    rsi:          row.rsi_14       ?? null,   // ← rsi_14 → rsi
+    macd:         row.macd_line    ?? null,   // ← macd_line → macd
+    macd_signal:  row.macd_signal  ?? null,   // ← same name ✓
+    macd_hist:    row.macd_histogram ?? null, // ← macd_histogram → macd_hist
+    bb_upper:     row.bb_upper     ?? null,
+    bb_lower:     row.bb_lower     ?? null,
+    bb_middle:    row.bb_middle    ?? null,
+    vwap:         row.vwap         ?? null,
+  }));
+  this.indicators.set(remapped);
+
+  // ✅ Screener — dig into data.items[0]
+  const item = screener?.data?.items?.[0] ?? null;
+  this.screener.set(item ? { ...item, provider: screener.provider } : null);
+
+  // ✅ Signals — already correct shape
+  this.signals.set(signals?.signals ?? {});
+  this.response = true
+},
+      error: err => this.errorMsg.set(this.extractError(err)),
     });
   }
 
   onSymbolInput(): void {
-    const control = this.form.controls.symbol;
-    const current = control.value ?? '';
-    const upper = current.toUpperCase();
-    if (current !== upper) {
-      control.setValue(upper, { emitEvent: false });
+    const ctrl = this.form.controls['symbol'];
+    const upper = (ctrl.value ?? '').toUpperCase();
+    if (ctrl.value !== upper) ctrl.setValue(upper, { emitEvent: false });
+  }
+
+  // ── Screener helpers ──────────────────────────────────────────────────────
+
+// Replace these two computed properties:
+
+screenerEntries = computed(() => {
+  const sc = this.screener();
+  if (!sc) return [];
+
+  const skip = ['provider', 'status', 'symbol', 'name'];
+  const rows: [string, any][] = [];
+
+  // Top-level fields: name, sector, market_cap, price
+  for (const [k, v] of Object.entries(sc)) {
+    if (skip.includes(k) || k === 'metrics') continue;
+    rows.push([k, v]);
+  }
+
+  // Flatten nested metrics object
+  if (sc.metrics && typeof sc.metrics === 'object') {
+    for (const [k, v] of Object.entries(sc.metrics)) {
+      rows.push([k, v]);
     }
   }
+
+  return rows;
+});
+
+signalEntries = computed(() => {
+  const s = this.signals();
+  // Handle both array ["rsioversold"] and object { RSI: "OVERSOLD" } shapes
+  if (Array.isArray(s)) {
+    return (s as string[]).map(raw => {
+      // Parse "rsioversold" → ["RSI", "OVERSOLD"]
+      const match = raw.match(/^(rsi|macd|sma|bb|ema|vwap)/i);
+      const key = match ? match[1].toUpperCase() : raw;
+      const val = raw.replace(/^(rsi|macd|sma|bb|ema|vwap)/i, '') || 'SIGNAL';
+      return [key, val.toUpperCase()] as [string, string];
+    });
+  }
+  return Object.entries(s);
+});
 
   private extractError(err: any): string {
-    return err?.error?.error?.message || err?.error?.message || err?.message || '';
-  }
-
-  // 3. Fixed to read the FIRST row of your data array (the latest day)
-  indicatorEntries(): [string, any][] {
-    if (!this.technicalResponse || !this.technicalResponse.data) {
-      return [];
-    }
-
-    // Your backend returns an array of 100 rows. We want the most recent one (index 0).
-    const latestData = Array.isArray(this.technicalResponse.data) 
-      ? this.technicalResponse.data[0] 
-      : this.technicalResponse.data;
-
-    if (!latestData) return [];
-
-    // Filter out database fields so we ONLY show the actual indicators
-    const ignoredKeys = ['id', 'symbol', 'date', 'computed_at'];
-    
-    return Object.entries(latestData).filter(([key]) => !ignoredKeys.includes(key));
+    return err?.error?.error?.message || err?.error?.message || err?.message || 'An unknown error occurred.';
   }
 }

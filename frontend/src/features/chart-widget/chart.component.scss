@@ -1,0 +1,43 @@
+.chart-widget {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 600px; /* Important: The widget needs a height */
+  background: var(--bg-color, #ffffff);
+}
+
+.chart-area {
+  width: 100%;
+  position: relative;
+}
+
+.main-chart {
+  flex: 1; /* Takes up most of the space */
+  min-height: 350px;
+}
+
+.sub-chart {
+  height: 150px; /* Fixed height for the bottom indicator pane */
+  margin-top: 10px;
+}
+
+/* Optional: Basic styling for the UI you built around it */
+.overlay-bar, .pane-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+}
+
+.overlay-btn, .pane-tab {
+  padding: 4px 12px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: transparent;
+  
+  &.active {
+    background: #e5e7eb;
+    font-weight: bold;
+  }
+}
