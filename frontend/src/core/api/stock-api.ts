@@ -1,42 +1,57 @@
+// ── ADD these methods to your existing StockApi service ──────────────────────
+// File: src/app/core/api/stock-api.ts
+
 import { Injectable } from '@angular/core';
-import { environment } from '../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { TechnicalResponse } from '../models/technical-response';
-import { ScreenerResponse } from '../models/screener-response';
+import { environment } from '../../environments/environment';
+const BASE = environment.apiBaseUrl;
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class StockApi {
-  private readonly baseUrl = environment.apiBaseUrl;
-
   constructor(private http: HttpClient) {}
 
-  // Backend route: GET /technical/{symbol}/indicators?period=1y&force_refresh=false
-  getTechnical(symbol: string, period: string): Observable<TechnicalResponse> {
-    const cleanSymbol = symbol.toUpperCase().trim();
-    const params = new HttpParams().set('period', period);
-    return this.http.get<TechnicalResponse>(
-      `${this.baseUrl}/technical/${cleanSymbol}/indicators`,
-      { params }
-    );
+  // ── Already exists in your codebase ───────────────────────────────────────
+
+  getTechnical(symbol: string, period = '6mo'): Observable<any> {
+    return this.http.get(`${BASE}/technical/${symbol}/indicators`, {
+      params: new HttpParams().set('period', period),
+    });
   }
 
-  // Optional: if you want quick signal-only route
-  getTechnicalSignals(symbol: string, period: string): Observable<any> {
-    const cleanSymbol = symbol.toUpperCase().trim();
-    const params = new HttpParams().set('period', period);
-    return this.http.get<any>(
-      `${this.baseUrl}/technical/${cleanSymbol}/signals`,
-      { params }
-    );
+  getScreener(symbol: string): Observable<any> {
+    // Your screener endpoint takes symbol as a query param, adjust if needed
+    return this.http.get(`${BASE}/screener`, {
+      params: new HttpParams().set('symbol', symbol),
+    });
   }
 
-  // TODO: replace path once your actual screener route is confirmed
-  getScreener(symbol: string): Observable<ScreenerResponse> {
-    const cleanSymbol = symbol.toUpperCase().trim();
-    const params = new HttpParams().set('symbol', cleanSymbol);
-    return this.http.get<ScreenerResponse>(`${this.baseUrl}/screener`, { params });
+  // ── NEW — add these ────────────────────────────────────────────────────────
+
+  /**
+   * Maps to:  GET /api/stock/{symbol}/price-history/?period=6mo
+   * Returns:  { data: OhlcvBar[] }
+   */
+  getPriceHistory(symbol: string, period = '6mo'): Observable<any> {
+    return this.http.get(`${BASE}/stock/${symbol}/price-history/`, {
+      params: new HttpParams().set('period', period),
+    });
+  }
+
+  /**
+   * Maps to:  GET /api/technical/{symbol}/signals?period=6mo
+   * Returns:  { signals: Record<string, string> }
+   *
+   * Expected signal shape from your TechnicalAnalysisService.get_signals():
+   * {
+   *   "RSI":  "OVERBOUGHT" | "OVERSOLD" | "NEUTRAL",
+   *   "MACD": "BULLISH"    | "BEARISH"  | "NEUTRAL",
+   *   "SMA":  "GOLDEN_CROSS" | "DEATH_CROSS" | "NEUTRAL"
+   * }
+   */
+  getSignals(symbol: string, period = '6mo'): Observable<any> {
+    return this.http.get(`${BASE}/technical/${symbol}/signals`, {
+      params: new HttpParams().set('period', period),
+    });
   }
 }
