@@ -29,3 +29,63 @@ th, td { border-bottom: 1px solid #efefef; text-align: left; padding: 8px 6px; f
 @media (max-width: 900px) { .analyze-form { grid-template-columns: 1fr; }
 
 .cards { grid-template-columns: 1fr; } }
+// ...existing code...
+
+.status.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.5rem;
+  background: #eef6ff;
+  color: #0b4ea2;
+  border: 1px solid #cfe3ff;
+  font-weight: 500;
+}
+
+.loader-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  border: 2px solid #9cc2ff;
+  border-top-color: #1f6feb;
+  animation: dashboard-spin 0.8s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes dashboard-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+// ...existing code...
+
+.timeframe-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.timeframe-pills .pill {
+  border: 1px solid #d0d7de;
+  background: #ffffff;
+  color: #1f2328;
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.timeframe-pills .pill:hover {
+  border-color: #1f6feb;
+  color: #1f6feb;
+}
+
+.timeframe-pills .pill.active {
+  background: #1f6feb;
+  border-color: #1f6feb;
+  color: #ffffff;
+}

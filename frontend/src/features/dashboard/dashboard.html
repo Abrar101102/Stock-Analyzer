@@ -21,18 +21,32 @@
 
     <div class="field">
       <label for="timeframe">Timeframe</label>
-      <select id="timeframe" formControlName="timeframe">
-        @for (tf of timeframes; track tf) {
-          <option [value]="tf">{{ tf }}</option>
+      <div class="timeframe-pills" id="timeframe" role="tablist" aria-label="Timeframe">
+        @for (tf of ['1D', '1W', '1M', '3M', '1Y', '5Y']; track tf) {
+          <button
+            type="button"
+            class="pill"
+            role="tab"
+            [class.active]="form.value.timeframe === tf"
+            [attr.aria-selected]="form.value.timeframe === tf"
+            (click)="form.controls['timeframe'].setValue(tf)"
+          >
+            {{ tf }}
+          </button>
         }
-      </select>
+      </div>
     </div>
 
     <button type="submit" [disabled]="loading()">
       {{ loading() ? 'Analyzing…' : 'Analyze' }}
     </button>
   </form>
-
+  @if (loading()) {
+    <div class="status loading" role="status" aria-live="polite">
+      <span class="loader-dot" aria-hidden="true"></span>
+      Analyzing {{ activeSymbol() || form.value.symbol }}…
+    </div>
+  }
   <!-- ── Error banner ────────────────────────────────────────────────────── -->
   @if (errorMsg()) {
     <div class="status error">{{ errorMsg() }}</div>
