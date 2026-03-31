@@ -107,9 +107,41 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
                 logger.error(f"Failed to fetch screener page: {e}")
 
         return None
+    
+    # ─────────────────────────────────────────────
+    # Sector & Industry Extraction (Robust)
+    # ─────────────────────────────────────────────
+    def _extract_sector_industry_from_peers(self, soup):
+        """
+        Extract sector & industry from peers breadcrumb (MOST reliable).
+        """
+        peers_section = soup.find("section", id="peers")
+        if not peers_section:
+            return None, None
+
+        sub_block = peers_section.find("p", class_="sub")
+        if not sub_block:
+            return None, None
+
+        sector = None
+        industry = None
+
+        for a in sub_block.find_all("a", href=True):
+            title = a.get("title", "").lower()
+            text = a.get_text(strip=True)
+
+            if title == "sector":
+                sector = text
+            elif title == "industry":
+                industry = text
+
+        return sector, industry
+    
     def get_company_overview(self, symbol: str) -> dict:
         symbol = self._normalize_for_screener(symbol)
         soup = self._fetch_page(symbol)
+
+        sector, industry = self._extract_sector_industry_from_peers(soup)
 
         if not soup:
             raise ValueError(f"Could not fetch or parse page for {symbol}")
@@ -117,8 +149,8 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
         overview = {
             "symbol": symbol,
             "name": symbol,
-            "sector": "N/A",
-            "industry": "N/A",
+            "sector": sector,
+            "industry": industry,
             "metrics": {}
         }
 
@@ -165,6 +197,7 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
                 "Dividend Yield": "dividend_yield",
                 "ROCE": "roce",
                 "ROE": "roe",
+                "Debt to equity": "debt_to_equity",
                 "Face Value": "face_value"
             }
 
