@@ -1,8 +1,8 @@
 import { Component, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
-import { forkJoin, finalize } from 'rxjs';
-import { StockApi } from '../../core/api/stock-api';
+import { forkJoin, finalize, catchError, of } from 'rxjs';
+import { StockApi, NewsResponse, NewsArticle } from '../../core/api/stock-api';
 import { ChartWidgetComponent, OhlcvBar, IndicatorRow } from '../chart-widget/chart.component';
 
 @Component({
@@ -14,6 +14,7 @@ import { ChartWidgetComponent, OhlcvBar, IndicatorRow } from '../chart-widget/ch
 })
 export class DashboardComponent {
   readonly timeframes = ['1mo', '3mo', '6mo', '1y', '2y', '5y'];
+  readonly tabs: Array<'fundamentals' | 'news' | 'signals' | 'overview'> = ['fundamentals', 'news', 'signals', 'overview'];
 
   // ── State (signals — no need for cdr.detectChanges()) ─────────────────────
   loading     = signal(false);
@@ -22,7 +23,9 @@ export class DashboardComponent {
   indicators  = signal<IndicatorRow[]>([]);
   screener    = signal<any>(null);
   signals     = signal<Record<string, string>>({});
+  news        = signal<NewsResponse | null>(null);
   activeSymbol = signal('');
+  activeTab    = signal<'fundamentals' | 'news' | 'signals' | 'overview'>('fundamentals');
 
   // ── Form ──────────────────────────────────────────────────────────────────
   form: FormGroup;
@@ -46,6 +49,7 @@ export class DashboardComponent {
     this.loading.set(true);
     this.errorMsg.set('');
     this.activeSymbol.set(symbol);
+    this.activeTab.set('fundamentals');
 
     // Replace nested subscribes with forkJoin — all 3 fire in parallel
     forkJoin({
@@ -53,14 +57,16 @@ export class DashboardComponent {
       technical:  this.stockApi.getTechnical(symbol, timeframe),
       screener:   this.stockApi.getScreener(symbol),
       signals:    this.stockApi.getSignals(symbol, timeframe),
+      news:       this.stockApi.getNews(symbol, 8).pipe(catchError(() => of(null))),
     })
     .pipe(finalize(() => this.loading.set(false)))
     .subscribe({
-      next: ({ ohlcv, technical, screener, signals }) => {
+      next: ({ ohlcv, technical, screener, signals, news }) => {
         console.log('OHLCV:', ohlcv);
   console.log('Technical:', technical);
   console.log('Screener:', screener);
   console.log('Signals:', signals);
+  console.log('News:', news);
 
   // ✅ OHLCV — correct
   this.ohlcvData.set(ohlcv?.data ?? []);
@@ -90,10 +96,22 @@ export class DashboardComponent {
 
   // ✅ Signals — already correct shape
   this.signals.set(signals?.signals ?? {});
+  this.news.set(news);
   this.response = true
 },
       error: err => this.errorMsg.set(this.extractError(err)),
     });
+  }
+
+  setTab(tab: 'fundamentals' | 'news' | 'signals' | 'overview'): void {
+    this.activeTab.set(tab);
+  }
+
+  tabLabel(tab: 'fundamentals' | 'news' | 'signals' | 'overview'): string {
+    if (tab === 'fundamentals') return 'Fundamental Analysis';
+    if (tab === 'news') return 'News & Sentiment';
+    if (tab === 'signals') return 'Signals';
+    return 'Overview';
   }
 
   onSymbolInput(): void {
@@ -143,6 +161,103 @@ signalEntries = computed(() => {
   }
   return Object.entries(s);
 });
+
+newsArticles = computed<NewsArticle[]>(() => {
+  return this.news()?.articles ?? [];
+});
+
+newsGaugeSegments = computed(() => {
+  const gauge = this.news()?.gauge;
+  if (!gauge) {
+    return [
+      { label: 'positive', value: 0 },
+      { label: 'neutral', value: 100 },
+      { label: 'negative', value: 0 },
+    ];
+  }
+
+  return [
+    { label: 'positive', value: gauge.positive ?? 0 },
+    { label: 'neutral', value: gauge.neutral ?? 0 },
+    { label: 'negative', value: gauge.negative ?? 0 },
+  ];
+});
+
+sentimentTone = computed(() => {
+  const sentiment = this.news()?.overall_sentiment;
+  return sentiment ?? 'neutral';
+});
+
+overallSentimentText = computed(() => {
+  const sentiment = this.news()?.overall_sentiment ?? 'neutral';
+  return sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
+});
+
+overallSentimentScore = computed(() => {
+  const score = this.news()?.overall_score;
+  return typeof score === 'number' ? score.toFixed(2) : '0.00';
+});
+
+fundamentalRatioCards = computed(() => {
+  const screener = this.screener();
+  const metrics = screener?.metrics ?? {};
+
+  return [
+    {
+      key: 'pe_ratio',
+      label: 'P/E',
+      value: this.getMetricValue(metrics, ['pe_ratio', 'pe']),
+      suffix: '',
+    },
+    {
+      key: 'roe',
+      label: 'ROE',
+      value: this.getMetricValue(metrics, ['roe']),
+      suffix: '%',
+    },
+    {
+      key: 'roce',
+      label: 'ROCE',
+      value: this.getMetricValue(metrics, ['roce']),
+      suffix: '%',
+    },
+    {
+      key: 'debt_to_equity',
+      label: 'Debt / Equity',
+      value: this.getMetricValue(metrics, ['debt_to_equity', 'de_ratio']),
+      suffix: '',
+    },
+    {
+      key: 'revenue_growth_yoy',
+      label: 'Revenue Growth YoY',
+      value: this.getMetricValue(metrics, ['revenue_growth_yoy', 'sales_growth_yoy']),
+      suffix: '%',
+    },
+  ];
+});
+
+private getMetricValue(metrics: Record<string, unknown>, keys: string[]): number | null {
+  for (const key of keys) {
+    const raw = metrics[key];
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      return raw;
+    }
+    if (typeof raw === 'string') {
+      const parsed = Number(raw.replace(/,/g, '').trim());
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+}
+
+formatRatio(value: number | null, suffix = ''): string {
+  if (value === null) {
+    return 'N/A';
+  }
+  return `${value.toFixed(2)}${suffix}`;
+}
 
   private extractError(err: any): string {
     return err?.error?.error?.message || err?.error?.message || err?.message || 'An unknown error occurred.';

@@ -65,10 +65,95 @@
       />
     }
 
-    <!-- Bottom cards row -->
-    <div class="cards">
-      <!-- Signals card -->
-      <section class="card">
+    <div class="dashboard-tabs" role="tablist" aria-label="Dashboard sections">
+      @for (tab of tabs; track tab) {
+        <button
+          type="button"
+          class="dashboard-tab-btn"
+          role="tab"
+          [class.active]="activeTab() === tab"
+          [attr.aria-selected]="activeTab() === tab"
+          (click)="setTab(tab)"
+        >
+          {{ tabLabel(tab) }}
+        </button>
+      }
+    </div>
+
+    @if (activeTab() === 'fundamentals') {
+      <section class="card card-wide" role="tabpanel" aria-label="Fundamental analysis">
+        <h2>Fundamental Analysis</h2>
+        @if (screener(); as sc) {
+          <p class="company-name">{{ sc.name }}</p>
+          <p class="provider-badge">{{ sc.sector }} • {{ sc.industry }}</p>
+
+          <div class="ratio-grid">
+            @for (ratio of fundamentalRatioCards(); track ratio.key) {
+              <article class="ratio-card">
+                <p class="ratio-label">{{ ratio.label }}</p>
+                <p class="ratio-value">{{ formatRatio(ratio.value, ratio.suffix) }}</p>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="muted">No fundamentals yet. Run analysis for a symbol first.</p>
+        }
+      </section>
+    }
+
+    @if (activeTab() === 'news') {
+      <section class="card card-wide" role="tabpanel" aria-label="News and sentiment">
+        <h2>News & Sentiment</h2>
+        @if (news(); as nw) {
+          <div class="sentiment-summary">
+            <div class="summary-pill" [class]="sentimentTone()">
+              <span class="summary-label">Overall</span>
+              <strong>{{ overallSentimentText() }}</strong>
+              <small>Score {{ overallSentimentScore() }}</small>
+            </div>
+
+            <div class="sentiment-gauge" aria-label="Sentiment gauge">
+              @for (segment of newsGaugeSegments(); track segment.label) {
+                <div
+                  class="gauge-segment"
+                  [class]="segment.label"
+                  [style.width.%]="segment.value"
+                  [attr.aria-label]="segment.label + ' ' + segment.value + '%'"
+                ></div>
+              }
+            </div>
+          </div>
+
+          @if (newsArticles().length) {
+            <ul class="headline-list">
+              @for (article of newsArticles(); track article.url) {
+                <li>
+                  <a [href]="article.url" target="_blank" rel="noopener noreferrer">{{
+                    article.title
+                  }}</a>
+                  <div class="headline-meta">
+                    <span>{{ article.source }}</span>
+                    <span class="dot">•</span>
+                    <span class="tag" [class]="article.sentiment_label">{{
+                      article.sentiment_label | titlecase
+                    }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="muted">
+              No recent headlines found for {{ activeSymbol() || form.value.symbol }}.
+            </p>
+          }
+        } @else {
+          <p class="muted">News unavailable. Add NEWS_API_KEY on backend to enable this tab.</p>
+        }
+      </section>
+    }
+
+    @if (activeTab() === 'signals') {
+      <section class="card card-wide" role="tabpanel" aria-label="Signals">
         <h2>Signals</h2>
         @if (signalEntries().length) {
           <ul class="signal-list">
@@ -83,11 +168,10 @@
           <p class="muted">No signals — run an analysis first.</p>
         }
       </section>
+    }
 
-      <!-- Screener card -->
-      <!-- Replace the screener card section: -->
-      <!-- Replace the screener card section entirely: -->
-      <section class="card">
+    @if (activeTab() === 'overview') {
+      <section class="card card-wide" role="tabpanel" aria-label="Overview">
         <h2>Overview</h2>
         @if (screener(); as sc) {
           <p class="provider-badge">{{ sc.provider }}</p>
@@ -106,6 +190,6 @@
           <p class="muted">No data — run an analysis first.</p>
         }
       </section>
-    </div>
+    }
   </div>
 </div>

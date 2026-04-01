@@ -7,6 +7,30 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 const BASE = environment.apiBaseUrl;
 
+export interface NewsArticle {
+  title: string;
+  source: string;
+  url: string;
+  published_at: string;
+  description: string;
+  sentiment_label: 'positive' | 'neutral' | 'negative';
+  sentiment_score: number;
+}
+
+export interface NewsResponse {
+  symbol: string;
+  query: string;
+  total_results: number;
+  overall_sentiment: 'positive' | 'neutral' | 'negative';
+  overall_score: number;
+  gauge: {
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
+  articles: NewsArticle[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class StockApi {
   constructor(private http: HttpClient) {}
@@ -52,6 +76,12 @@ export class StockApi {
   getSignals(symbol: string, period = '6mo'): Observable<any> {
     return this.http.get(`${BASE}/technical/${symbol}/signals`, {
       params: new HttpParams().set('period', period),
+    });
+  }
+
+  getNews(symbol: string, limit = 8): Observable<NewsResponse> {
+    return this.http.get<NewsResponse>(`${BASE}/news/${symbol}`, {
+      params: new HttpParams().set('limit', String(limit)),
     });
   }
 }
