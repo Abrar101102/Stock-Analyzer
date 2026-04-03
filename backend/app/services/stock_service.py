@@ -4,12 +4,15 @@ from app.data_providers.base_provider import MarketDataProvider
 from app.data_sources.market_data_source import MarketDataSource
 from app.registry.symbol_resolver import SymbolResolver
 from app.core.exceptions import NotFoundError
+from app.db.session import SessionLocal
 
 # Map provider class → provider name for symbol resolution
 PROVIDER_NAME_MAP = {
     "YahooMarketDataProvider": "yahoo",
     "AlphaVantageProvider": "alpha_vantage",
 }
+
+db = SessionLocal()
 
 class StockService:
   """
@@ -22,7 +25,7 @@ class StockService:
     )
 
   def get_price_history(self,symbol:str,period:str="6mo")->List[Dict]:
-    if not StockRegistry.exists(symbol):
+    if not StockRegistry.exists(symbol,db):
       raise NotFoundError(
         code = "INVALID_SYMBOL",
         message = "ENTERED STOCK SYMBOL IS NOT IN REGISTRY",

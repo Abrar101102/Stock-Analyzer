@@ -3,13 +3,14 @@ from app.core.exceptions import NotFoundError
 from sqlalchemy.orm import Session
 import statistics
 
+
 class SectorComparisionService:
   def __init__(self,valuation_service,trend_service):
     self.valuation_service = valuation_service
     self.trend_service = trend_service
 
   def compare_pe_ratio(self,db:Session,symbol:str):
-    peers = StockRegistry.get_peers(symbol)
+    peers = StockRegistry.get_peers(symbol,db)
 
     values = []
     for peer in peers:

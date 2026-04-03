@@ -1,8 +1,11 @@
 from app.registry.stock_registry import StockRegistry
+from app.db.session import SessionLocal
 from app.core.exceptions import NotFoundError
 import logging
 
 logger = logging.getLogger(__name__)
+
+db = SessionLocal()
 
 
 class SymbolResolver:
@@ -31,8 +34,8 @@ class SymbolResolver:
     normalized = symbol.upper().strip()
 
     # If the registry knows this symbol, use the mapping
-    if StockRegistry.exists(normalized):
-      stock = StockRegistry.get_stock(normalized)
+    if StockRegistry.exists(normalized,db):
+      stock = StockRegistry.get_stock(normalized,db)
       resolved = stock.get_symbol_for(provider)
       logger.debug(
         f"Resolved symbol",

@@ -4,6 +4,7 @@ from app.fundamentals.models.fundamental_snapshot_model import FundamentalSnapsh
 from app.registry.stock_registry import StockRegistry
 from app.registry.symbol_resolver import SymbolResolver
 from app.core.exceptions import ValidationError,NotFoundError
+from app.db.session import SessionLocal
 from app.fundamentals.validation.provider_sanity import assert_valid_fiscal_year
 from dataclasses import asdict
 from typing import List
@@ -11,6 +12,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 max_limit = 50
+
+db = SessionLocal()
 
 class FundamentalService:
   """
@@ -29,7 +32,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     
   def _normalize_symbol(self,symbol:str)->str:
     # Check if symbol is in registry and return normalized version if it exists 
-    stock = StockRegistry.get_stock(symbol)
+    stock = StockRegistry.get_stock(symbol,db)
     return stock.yahoo_symbol
   
   def _validate_limit(self,limit:int)->int:

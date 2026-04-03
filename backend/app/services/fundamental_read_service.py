@@ -5,6 +5,7 @@ from app.fundamentals.repositories.fundamental_read_repository import Fundamenta
 from app.registry.stock_registry import StockRegistry
 from app.core.exceptions import NotFoundError
 
+
 class FundamentalReadService:
   def __init__(self):
     self.repository = FundamentalReadRepository()
@@ -15,8 +16,8 @@ class FundamentalReadService:
       symbol:str,
       fiscal_year:int,
       as_of_date:date|None =None):
-    if not StockRegistry.exists(symbol):
-      raise NotFoundException(
+    if not StockRegistry.exists(symbol, db):
+      raise NotFoundError(
         code = "STOCK_NOT_FOUND",
         message = f"Stock with symbol '{symbol}' not found in registry"
       )
