@@ -20,10 +20,11 @@ from app.middleware.metrics import metrics_middleware
 from app.db.base_class import Base
 from app.scheduler import start_scheduler
 from app.db.session import engine
+from app.core.lifespan import lifespan
 
 Base.metadata.create_all(bind=engine)# Responsible for creating Table if not created
 
-app = FastAPI(title="Stock Analyzer")
+app = FastAPI(title="Stock Analyzer",lifespan=lifespan)
 
 set_up_logging()
 app.middleware("http")(request_context_middleware)
