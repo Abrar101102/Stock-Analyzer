@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, Query
 from app.dependencies.technical_dependency import get_technical_orchestrator
 from app.utils.json_sanitize import sanitize_json_floats
 router = APIRouter(prefix="/technical", tags=["Technical Analysis"])
@@ -18,16 +17,13 @@ def get_technical_indicators(
     Uses cached DB data if fresh enough (< 1 day old).
     Pass force_refresh=true to bypass cache.
     """
-    try:
-        result = deps["orchestrator"].get_indicators(
-            db=deps["db"],
-            symbol=symbol,
-            period=period,
-            force_refresh=force_refresh,
-        )
-        return sanitize_json_floats(result)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    result = deps["orchestrator"].get_indicators(
+        db=deps["db"],
+        symbol=symbol,
+        period=period,
+        force_refresh=force_refresh,
+    )
+    return sanitize_json_floats(result)
 
 
 @router.get("/{symbol}/signals")
@@ -37,16 +33,13 @@ def get_signals_only(
     deps=Depends(get_technical_orchestrator),
 ):
     """Quick endpoint — just the buy/sell signals, minimal data."""
-    try:
-        result = deps["orchestrator"].get_indicators(
-            db=deps["db"],
-            symbol=symbol,
-            period=period,
-        )
-        return {
-            "symbol": symbol,
-            "source": result.get("source"),
-            "signals": result.get("signals", {}),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    result = deps["orchestrator"].get_indicators(
+        db=deps["db"],
+        symbol=symbol,
+        period=period,
+    )
+    return {
+        "symbol": symbol,
+        "source": result.get("source"),
+        "signals": result.get("signals", {}),
+    }

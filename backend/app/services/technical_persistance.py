@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.technical_indicator import TechnicalIndicator
+from sqlalchemy.dialects.postgresql import insert
 from app.utils.sanitize import sanitize_value
 from app.db.session import SessionLocal
 from datetime import datetime
@@ -37,14 +38,22 @@ class TechnicalPersistanceService:
                         setattr(existing, col, sanitize_value(row.get(col)))
                     existing.computed_at = datetime.utcnow()
                 else:
-                    indicator = TechnicalIndicator(
-                        symbol=symbol,
-                        date=row['date'].date() if hasattr(row['date'], 'date') else row['date'],
-                        
-                        computed_at=datetime.utcnow(),
+                    row_date = row['date'].date() if hasattr(row['date'], 'date') else row['date']
+                    payload = {
+                        "symbol":symbol,
+                        "date": row_date,
+                        "computed_at": datetime.utcnow(),
                         **{col: sanitize_value(row.get(col)) for col in self.INDICATOR_COLS}
+                    }
+                    stmt = insert(TechnicalIndicator).values(**payload)
+                    stmt = stmt.on_conflict_do_update(
+                    index_elements= [TechnicalIndicator.symbol,TechnicalIndicator.date],
+                    set_={
+                        **{col:payload[col] for col in self.INDICATOR_COLS},
+                        "computed_at":payload["computed_at"]
+                    },
                     )
-                    session.add(indicator)
+                    session.execute(stmt)
                     rows_saved += 1
 
             session.commit()

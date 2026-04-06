@@ -1,11 +1,9 @@
 from app.registry.stock_registry import StockRegistry
-from app.db.session import SessionLocal
 from app.core.exceptions import NotFoundError
+from sqlalchemy.orm import Session
 import logging
 
 logger = logging.getLogger(__name__)
-
-db = SessionLocal()
 
 
 class SymbolResolver:
@@ -23,7 +21,7 @@ class SymbolResolver:
   """
 
   @staticmethod
-  def resolve(symbol: str, provider: str) -> str:
+  def resolve(symbol: str, provider: str, db: Session | None = None) -> str:
     """
     Resolve a canonical symbol to the provider-specific format.
     
@@ -33,12 +31,13 @@ class SymbolResolver:
     """
     normalized = symbol.upper().strip()
 
-    # If the registry knows this symbol, use the mapping
-    if StockRegistry.exists(normalized,db):
-      stock = StockRegistry.get_stock(normalized,db)
+    # If a request-scoped DB session is provided and the registry knows
+    # this symbol, use the provider-specific mapping.
+    if db and StockRegistry.exists(normalized, db):
+      stock = StockRegistry.get_stock(normalized, db)
       resolved = stock.get_symbol_for(provider)
       logger.debug(
-        f"Resolved symbol",
+        "Resolved symbol from registry",
         extra={
           "canonical": normalized,
           "provider": provider,
@@ -56,8 +55,8 @@ class SymbolResolver:
     return normalized
 
   @staticmethod
-  def resolve_strict(symbol: str, provider: str) -> str:
+  def resolve_strict(symbol: str, provider: str, db: Session) -> str:
     """Same as resolve() but raises if symbol not in registry."""
     normalized = symbol.upper().strip()
-    stock = StockRegistry.get_stock(normalized)  # raises NotFoundError
+    stock = StockRegistry.get_stock(normalized, db)  # raises NotFoundError
     return stock.get_symbol_for(provider)
