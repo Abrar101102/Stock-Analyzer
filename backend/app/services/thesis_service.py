@@ -27,16 +27,17 @@ class ThesisService:
         summary = self._clean_summary(raw) or summary
       
       except Exception as e:
-        return e
+        print(f"LLM generation failed: {e}")
+        return "LLM generation failed, using fallback response."
       
-      return ThesisResponseModel(
+    return ThesisResponseModel(
         symbol = symbol,
         verdict = verdict,
         summary = summary,
         signals = signals,
         generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00","Z") 
 
-      )
+    )
     
   def _build_prompt(self,symbol:str,signals:dict[str,Any])->str:
       
@@ -53,7 +54,7 @@ class ThesisService:
       "unknown":0
     }
 
-    score = sum(score_map.get(v,0)for v in signals.vales())
+    score = sum(score_map.get(v,0)for v in signals.values())
 
     if score >= 2:
       return "Buy"
@@ -75,5 +76,5 @@ class ThesisService:
     return raw.strip()
   
   def _fallback_summary(self,symbol:str,signals:dict[str,str],verdict:str)->str:
-    return f"{symbol.upper()} shows {signals['fundamentals']} fundamentals, {signals['technical']} technicals, {signals['sentiment']} sentiment, and {signals['valuation']} valuation; overall stance is {verdict}."
+    return f"{symbol.upper()} shows {signals['fundamental']} fundamentals, {signals['technical']} technicals, {signals['sentiment']} sentiment, and {signals['valuation']} valuation; overall stance is {verdict}."
     
