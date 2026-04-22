@@ -28,7 +28,7 @@ class ThesisService:
       
       except Exception as e:
         print(f"LLM generation failed: {e}")
-        return "LLM generation failed, using fallback response."
+        summary = self._fallback_summary(symbol,signals,verdict)
       
     return ThesisResponseModel(
         symbol = symbol,
@@ -43,7 +43,7 @@ class ThesisService:
       
       return f"Symbol : {symbol}. Signals:{signals}. Return 1 Short thesis paragraph and a verdict."
   
-  def _rule_based_verdict(self,symbol:str,signals:dict[str,Any])->str:
+  def _rule_based_verdict(self,signals:dict[str,Any])->str:
     score_map = {
       "posetive":1,
       "neutral":0,
