@@ -6,6 +6,8 @@ from app.db.session import SessionLocal,engine
 from app.db.base_class import Base
 from app.registry.stock_registry import StockRegistry
 from app.data.nifty50_seed import NIFTY50_STOCKS
+from app.core.config import settings
+from app.services.llm_provider import get_local_llm_provider
 import logging
 
 logger = logging.getLogger(__name__)
@@ -64,6 +66,14 @@ async def lifespan(app: FastAPI):
         # Don't crash the app — just log and continue
     finally:
         db.close()
+
+    if settings.LLM_provider == "local":
+        try:
+            logger.info("Loading local GGUF+LoRA LLM provider...")
+            get_local_llm_provider()
+            logger.info("Local LLM provider ready.")
+        except Exception as e:
+            logger.warning(f"Local LLM provider failed to load at startup: {e}")
 
     yield  # ← app runs here, handling requests
 
