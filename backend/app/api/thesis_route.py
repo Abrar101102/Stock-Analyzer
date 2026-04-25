@@ -2,7 +2,7 @@ from fastapi import APIRouter,Depends,HTTPException
 from app.dependencies.thesis_dependency import get_thesis_service
 from app.services.thesis_service import ThesisService
 
-router = APIRouter("/thesis",tags = ["thesis"])
+router = APIRouter(prefix="/thesis",tags = ["thesis"])
 
 @router.get("/{symbol}")
 def get_thesis(symbol:str,service:ThesisService = Depends(get_thesis_service)):

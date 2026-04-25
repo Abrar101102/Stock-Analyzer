@@ -12,4 +12,17 @@ DATABASE_URL = f"postgresql://stock_user:{safe_password}@localhost:5432/stock_an
 ALPHA_VANTAGE_API_KEY = "JGPZOKCM2GN477A1"
 NEWS_API_KEY = os.getenv("NEWS_API_KEY", "")
 
+
+class Settings:
+	def __init__(self) -> None:
+		self.LLM_provider = os.getenv("LLM_PROVIDER", "local").lower()
+		self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+		self.LLM_MODEL_PATH = os.getenv("LLM_MODEL_PATH", "models/mistral-7b-instruct-v0.3.Q4_K_M.gguf")
+		self.LLM_LORA_PATH = os.getenv("LLM_LORA_PATH", "models/model-f16.gguf")
+		self.LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "120"))
+		self.LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.2"))
+
+
+settings = Settings()
+
 print(f"Using NEWS_API_KEY: {NEWS_API_KEY}")
