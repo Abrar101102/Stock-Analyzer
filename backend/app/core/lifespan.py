@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
         if existing_count == 0:
             logger.info("Stock registry is empty — seeding Nifty50 stocks...")
             seeded = StockRegistry.bulk_seed(db, NIFTY50_STOCKS)
-            logger.info(f"✅ Seeded {seeded} stocks into registry.")
+            logger.info(f"Seeded {seeded} stocks into registry.")
         else:
             # ── 3. Sync: add any NEW stocks added to seed file ─────────────
             # This handles the case where you add more stocks to nifty50_seed.py
@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
                     if s["symbol"].upper() in new_symbols
                 ]
                 added = StockRegistry.bulk_seed(db, new_stocks)
-                logger.info(f"✅ Added {added} new stocks from seed file.")
+                logger.info(f"Added {added} new stocks from seed file.")
             else:
                 logger.info(
                     f"Registry already has {existing_count} stocks — nothing to seed."

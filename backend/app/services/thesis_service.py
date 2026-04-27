@@ -59,7 +59,7 @@ class ThesisService:
     if score >= 2:
       return "Buy"
     elif score <= -2:
-      return "Avoid"
+      return "Sell"
     return "Hold"
   
   def _map_verdict(self,raw:str)->str|None:
@@ -67,7 +67,7 @@ class ThesisService:
     if "buy" in t:
       return "Buy"
     if "avoid" in t or "sell" in t:
-      return "Avoid"
+      return "Sell"
     if "hold" in t:
       return "Hold"
     return None
