@@ -5,6 +5,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import {ThesisResponseModel} from "../models/thesis-response.model"
+
 const BASE = environment.apiBaseUrl;
 
 export interface NewsArticle {
@@ -83,5 +85,11 @@ export class StockApi {
     return this.http.get<NewsResponse>(`${BASE}/news/${symbol}`, {
       params: new HttpParams().set('limit', String(limit)),
     });
+  }
+
+  getThesis(symbol:string):Observable<ThesisResponseModel>{
+    return this.http.get<ThesisResponseModel>(
+      `${BASE}/thesis/${symbol}`
+    )
   }
 }
