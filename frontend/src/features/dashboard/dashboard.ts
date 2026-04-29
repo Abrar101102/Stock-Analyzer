@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angula
 import { forkJoin, finalize, catchError, of } from 'rxjs';
 import { StockApi, NewsResponse, NewsArticle } from '../../core/api/stock-api';
 import { ChartWidgetComponent, OhlcvBar, IndicatorRow } from '../chart-widget/chart.component';
+import { ThesisResponseModel } from '../../core/models/thesis-response.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,7 +15,7 @@ import { ChartWidgetComponent, OhlcvBar, IndicatorRow } from '../chart-widget/ch
 })
 export class DashboardComponent {
   readonly timeframes = ['1mo', '3mo', '6mo', '1y', '2y', '5y'];
-  readonly tabs: Array<'fundamentals' | 'news' | 'signals' | 'overview'> = ['fundamentals', 'news', 'signals', 'overview'];
+  readonly tabs: Array<'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'> = ['fundamentals', 'news', 'signals', 'overview','thesis'];
 
   // ── State (signals — no need for cdr.detectChanges()) ─────────────────────
   loading     = signal(false);
@@ -24,8 +25,10 @@ export class DashboardComponent {
   screener    = signal<any>(null);
   signals     = signal<Record<string, string>>({});
   news        = signal<NewsResponse | null>(null);
+  thesis      = signal<ThesisResponseModel | null>(null);
   activeSymbol = signal('');
-  activeTab    = signal<'fundamentals' | 'news' | 'signals' | 'overview'>('fundamentals');
+
+  activeTab    = signal<'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'>('fundamentals');
 
   // ── Form ──────────────────────────────────────────────────────────────────
   form: FormGroup;
@@ -57,17 +60,18 @@ export class DashboardComponent {
       technical:  this.stockApi.getTechnical(symbol, timeframe),
       screener:   this.stockApi.getScreener(symbol),
       signals:    this.stockApi.getSignals(symbol, timeframe),
-      news:       this.stockApi.getNews(symbol, 8).pipe(catchError(() => of(null))),
+      news:       this.stockApi.getNews(symbol, 8),
+      thesis:     this.stockApi.getThesis(symbol).pipe(catchError(() => of(null))),
     })
     .pipe(finalize(() => this.loading.set(false)))
     .subscribe({
-      next: ({ ohlcv, technical, screener, signals, news }) => {
+      next: ({ ohlcv, technical, screener, signals, news,thesis }) => {
         console.log('OHLCV:', ohlcv);
   console.log('Technical:', technical);
   console.log('Screener:', screener);
   console.log('Signals:', signals);
   console.log('News:', news);
-
+  console.log('Thesis:',thesis)
   // ✅ OHLCV — correct
   this.ohlcvData.set(ohlcv?.data ?? []);
 
@@ -97,20 +101,23 @@ export class DashboardComponent {
   // ✅ Signals — already correct shape
   this.signals.set(signals?.signals ?? {});
   this.news.set(news);
+  this.thesis.set(thesis)
+  console.log('Thesis set in component:', this.thesis());
   this.response = true
 },
       error: err => this.errorMsg.set(this.extractError(err)),
     });
   }
 
-  setTab(tab: 'fundamentals' | 'news' | 'signals' | 'overview'): void {
+  setTab(tab: 'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'): void {
     this.activeTab.set(tab);
   }
 
-  tabLabel(tab: 'fundamentals' | 'news' | 'signals' | 'overview'): string {
+  tabLabel(tab: 'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'): string {
     if (tab === 'fundamentals') return 'Fundamental Analysis';
     if (tab === 'news') return 'News & Sentiment';
     if (tab === 'signals') return 'Signals';
+    if (tab ==='thesis') return 'Investment Thesis';
     return 'Overview';
   }
 
@@ -198,6 +205,19 @@ overallSentimentScore = computed(() => {
   return typeof score === 'number' ? score.toFixed(2) : '0.00';
 });
 
+thesisSignalEntries = computed(() => {
+  const ths = this.thesis();
+  if (!ths?.signals) return [];
+
+  const entries: [string, string][] = [];
+  if (ths.signals.fundamental) entries.push(['Fundamental', ths.signals.fundamental]);
+  if (ths.signals.technical) entries.push(['Technical', ths.signals.technical]);
+  if (ths.signals.sentiment) entries.push(['Sentiment', ths.signals.sentiment]);
+  if (ths.signals.valuation) entries.push(['Valuation', ths.signals.valuation]);
+
+  return entries;
+});
+
 fundamentalRatioCards = computed(() => {
   const screener = this.screener();
   const metrics = screener?.metrics ?? {};
@@ -257,6 +277,17 @@ formatRatio(value: number | null, suffix = ''): string {
     return 'N/A';
   }
   return `${value.toFixed(2)}${suffix}`;
+}
+
+formatDate(date: string | Date | null | undefined): string {
+  if (!date) return 'N/A';
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch {
+    return 'N/A';
+  }
 }
 
   private extractError(err: any): string {

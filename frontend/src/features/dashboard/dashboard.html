@@ -217,6 +217,37 @@
           }
         </section>
       }
+      @if (activeTab() === 'thesis') {
+        <section class="tab-panel" role="tabpanel" aria-label="thesis">
+          <h3>Investment Thesis</h3>
+          @if (thesis(); as ths) {
+            <div class="thesis-container">
+              <div class="thesis-header">
+                <div>
+                  <p class="thesis-verdict" [class]="(ths.verdict ?? 'neutral').toLowerCase()">
+                    {{ ths.verdict ?? 'No verdict' }}
+                  </p>
+                  <p class="thesis-summary">{{ ths.summary }}</p>
+                </div>
+                <p class="thesis-generated">{{ formatDate(ths.generated_at) }}</p>
+              </div>
+
+              @if (thesisSignalEntries().length) {
+                <div class="thesis-signals-grid">
+                  @for (entry of thesisSignalEntries(); track entry[0]) {
+                    <div class="thesis-signal-card">
+                      <p class="signal-type">{{ entry[0] }}</p>
+                      <p class="signal-value">{{ entry[1] }}</p>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="muted">No thesis available. Run an analysis first.</p>
+          }
+        </section>
+      }
     </div>
   </section>
 </div>
