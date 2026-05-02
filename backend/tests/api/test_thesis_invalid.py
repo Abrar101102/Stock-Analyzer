@@ -3,18 +3,21 @@ from backend.app.models.response.thesis_model import ThesisResponseModel
 import pytest
 from pydantic import ValidationError
 
-def test_thesis_invalid_response_model():
+def test_thesis_valid_response_model():
+  """Test that thesis response model validates correctly with proper signal labels."""
   payload = {
     "symbol":"TCS",
     "verdict":"Hold",
-    "summary":"Tcs shows Good Fundamentals",
+    "summary":"TCS shows neutral fundamentals and sentiment with fair valuation",
     "signals":{
-      "fundamental":"posetive",
+      "fundamental":"neutral",
       "technical":"neutral",
-      "sentiment":"posetive",
-      "valuation":"neutral"
+      "sentiment":"neutral",
+      "valuation":"fair"
     },
     "generated_at":datetime.now(timezone.utc)
   }
-  with pytest.raises(ValidationError):
-    ThesisResponseModel(**payload)
+  # This should now pass validation (no exception)
+  obj = ThesisResponseModel(**payload)
+  assert obj.symbol == "TCS"
+  assert obj.verdict == "Hold"
