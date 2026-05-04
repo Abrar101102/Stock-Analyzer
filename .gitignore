@@ -1,8 +1,11 @@
 backend/myenv/
+backend/.venv/
 backend/__pycache__/
 backend/.env
 backend/*.pyc/
 backend/__pycache__/*.py[cod]
+checkpoint-135/
+backend/models
 *.pyc
 ##frontend
 frontend/dist/

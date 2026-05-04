@@ -2,6 +2,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Any, Protocol
 import requests
+import os
 
 from app.core.config import settings
 
@@ -93,6 +94,8 @@ _LOCAL_PROVIDER: LlamaCppLoraProvider | None = None
 def get_local_llm_provider() -> LlamaCppLoraProvider:
   global _LOCAL_PROVIDER
   if _LOCAL_PROVIDER is None:
+    if not os.path.exists(settings.LLM_MODEL_PATH):
+      raise FileNotFoundError(f"LLM model file not found at {settings.LLM_MODEL_PATH}")
     _LOCAL_PROVIDER = LlamaCppLoraProvider(
       model_path=settings.LLM_MODEL_PATH,
       lora_path=settings.LLM_LORA_PATH,
