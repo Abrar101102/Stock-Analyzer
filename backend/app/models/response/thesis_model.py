@@ -11,6 +11,7 @@ class Signal(BaseModel):
 class ThesisResponseModel(BaseModel):
   symbol:str
   verdict: Literal['Buy','Sell','Hold']
+  composite_score: float
   summary:str
   signals: Signal
   generated_at:datetime
