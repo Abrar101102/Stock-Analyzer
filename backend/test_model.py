@@ -5,7 +5,18 @@ llm = Llama(
     lora_path="models/model-f16.gguf"
 )
 
-prompt = "<s>[INST] Say hello and confirm you are working [/INST]"
+prompt = """<|system|>
+You are a financial analyst.
+<|user|>
+Analyze stock HDFCBANK with signals:
+fundamental: positive
+technical: neutral
+sentiment: negative
+valuation: expensive
+
+Give a short thesis and verdict.
+<|assistant|>
+"""
 
 output = llm(
     prompt,
