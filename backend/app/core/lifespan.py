@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
     # Import every model here so SQLAlchemy knows about them before create_all
     from app.models.stock import StockSymbol
     from app.models.technical_indicator import TechnicalIndicator
+    from app.models.thesis_cache import ThesisCache
     # add any other models here as your app grows
 
     logger.info("Creating DB tables if they don't exist...")

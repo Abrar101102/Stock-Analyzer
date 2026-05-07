@@ -21,6 +21,10 @@ class Settings:
 		self.LLM_LORA_PATH = os.getenv("LLM_LORA_PATH", "models/model-f16.gguf")
 		self.LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "120"))
 		self.LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.2"))
+		self.COMPOSITE_WEIGHT_FUNDAMENTAL = float(os.getenv("COMPOSITE_WEIGHT_FUNDAMENTAL", "0.25"))
+		self.COMPOSITE_WEIGHT_TECHNICAL = float(os.getenv("COMPOSITE_WEIGHT_TECHNICAL", "0.25"))
+		self.COMPOSITE_WEIGHT_SENTIMENT = float(os.getenv("COMPOSITE_WEIGHT_SENTIMENT", "0.25"))
+		self.COMPOSITE_WEIGHT_VALUATION = float(os.getenv("COMPOSITE_WEIGHT_VALUATION", "0.25"))
 
 
 settings = Settings()
