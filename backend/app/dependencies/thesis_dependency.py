@@ -6,6 +6,7 @@ from app.services.technical_analysis_service import TechnicalAnalysisService
 from app.services.news_service import NewsService
 from app.services.valuation_service import ValuationService
 from app.services.fundamental_read_service import FundamentalReadService
+from app.services.composite_score_service import CompositeScoreService
 from app.market_data.base_price_service import BasePriceService
 from app.dependencies.db_dependency import get_db
 from app.dependencies.news_dependency import get_news_service
@@ -40,6 +41,7 @@ def get_thesis_service(
   technical_service = TechnicalAnalysisService()
   valuation_service = ValuationService(price_service)
   fundamental_service = FundamentalReadService()
+  composite_score_service = CompositeScoreService()
 
   return ThesisService(
     llm_provider=llm_provider,
@@ -48,4 +50,5 @@ def get_thesis_service(
     news_service=news_service,
     valuation_service=valuation_service,
     fundamental_service=fundamental_service,
+    composite_score_service=composite_score_service,
   )

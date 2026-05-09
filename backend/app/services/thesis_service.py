@@ -7,6 +7,7 @@ from app.services.technical_analysis_service import TechnicalAnalysisService
 from app.services.news_service import NewsService
 from app.services.valuation_service import ValuationService
 from app.services.fundamental_read_service import FundamentalReadService
+from app.services.composite_score_service import CompositeScoreService
 from app.data_sources.market_data_source import MarketDataSource
 from app.core.exceptions import NotFoundError
 
@@ -21,6 +22,7 @@ class ThesisService:
     news_service: NewsService = None,
     valuation_service: ValuationService = None,
     fundamental_service: FundamentalReadService = None,
+    composite_score_service: CompositeScoreService = None,
   ):
     self.llm_provider = llm_provider
     self.db = db
@@ -28,6 +30,7 @@ class ThesisService:
     self.news_service = news_service
     self.valuation_service = valuation_service
     self.fundamental_service = fundamental_service or FundamentalReadService()
+    self.composite_score_service = composite_score_service or CompositeScoreService()
     self.market_data_source = MarketDataSource()
 
   def generate(self, symbol: str) -> dict[str, Any]:
@@ -40,6 +43,7 @@ class ThesisService:
 
     metrics = self._extract_metrics_for_prompt(symbol, signals)
     verdict = self._rule_based_verdict(signals)
+    composite_score = self.composite_score_service.compute(signals)
     summary = self._fallback_summary(symbol, signals, verdict)
 
     if self.llm_provider:
@@ -57,9 +61,10 @@ class ThesisService:
     return ThesisResponseModel(
       symbol=symbol,
       verdict=verdict,
+      composite_score=composite_score,
       summary=summary,
       signals=signals,
-      generated_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+      generated_at=datetime.now(timezone.utc)
     )
 
   def _gather_signals(self, symbol: str) -> dict[str, str]:
