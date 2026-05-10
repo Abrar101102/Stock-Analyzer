@@ -1,0 +1,103 @@
+1️⃣ Stage A — Annual trend engine
+2️⃣ Stage C — Valuation layer
+3️⃣ Stage D — Sector comparison
+4️⃣ Stage B — Quarterly (most complex)
+
+Stage A
+RevenueGrowth=(Revenue[t]​−Revenue[t−1]​)/Revenuet−1​
+EPSGrowth=(EPSt​−EPSt−1​)/EPSt−1​
+CAGR=(Final/Initial)(1/n)−1
+ROE=NetIncome/ShareholdersEquity
+
+
+✔ Architecture decisions
+
+✔ Exact formulas
+
+✔ Service design
+
+✔ Bullet tracking checklist
+
+✔ Clean production-grade code structure
+stage C
+Given a symbol:
+
+Fetch latest annual fundamentals snapshot
+
+Fetch latest market price
+
+Extract:
+
+EPS
+
+Net Income
+
+EBITDA
+
+Debt
+
+Cash
+
+Shares Outstanding
+
+Equity
+
+Compute:
+
+P/E
+
+Market Cap
+
+Enterprise Value (EV)
+
+EV/EBITDA
+
+Price-to-Book
+
+Stage D
+We define comparison metrics clearly.
+
+📊 A) Sector Average
+
+For metric M:
+SectorAverage(M)=n∑i=1n​Mi​​
+i
+📊 B) Percentile Rank
+Percentile = \frac{\text{# peers below company}}{\text{total peers}} * 100
+📊 C) Z-Score (Optional Advanced)
+
+	​Z=(Company−Mean)/StdDev​
+
+📊 D) Ranking
+
+Sort peers descending:
+
+Higher ROE → better
+
+Lower PE → better
+
+🚀 STAGE B — Quarterly Trend Engine
+
+This is NOT just “store quarterly data”.
+
+This is:
+
+QoQ growth engine
+
+TTM computation engine
+
+Volatility engine
+
+Acceleration detection
+
+Earnings momentum system
+
+1️⃣ ARCHITECTURE DECISIONS
+🧠 Core Principle
+
+Quarterly data behaves very differently from annual:
+
+Annual	Quarterly
+1 record per year	4+ records per year
+Used for CAGR	Used for QoQ/TTM
+Long-term trends	Short-term momentum
