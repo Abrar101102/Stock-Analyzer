@@ -14,11 +14,11 @@ def compare_sector(symbol:str,fiscal_year:int,db:Session=Depends(get_db)):
   try:
 
     ValuationService = ValuationService(price_Service)
-    TrendService = None
-    service = SectorComparisionService(ValuationService,TrendService)
+    from app.services.trend_service import TrendService
+    trend_service = TrendService()
+    service = SectorComparisionService(ValuationService, trend_service)
 
-
-    result = service.compare_pe_ratio(db,symbol)
+    result = service.compare_all_metrics(db, symbol)
 
     return result
   except Exception as e:
