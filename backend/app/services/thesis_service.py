@@ -58,9 +58,17 @@ class ThesisService:
         logger.warning(f"LLM generation failed: {e}")
         summary = self._fallback_summary(symbol, signals, verdict)
 
+    if composite_score >= 80:
+      confidence = "High"
+    elif composite_score >= 50:
+      confidence = "Medium"
+    else:
+      confidence = "Low"
+
     return ThesisResponseModel(
       symbol=symbol,
       verdict=verdict,
+      confidence=confidence,
       composite_score=composite_score,
       summary=summary,
       signals=signals,
