@@ -13,6 +13,7 @@ from app.api.quarterly import router as quarterly_router
 from app.api.thesis_route import router as thesis_router
 from app.api.technical_analysis_route import router as technical_router
 from app.api.screener import router as screener_router
+from app.api.watchlist import router as watchlist_router
 from app.api.exception_handlers import domain_error_handler
 from app.core.exceptions import DomainError
 from app.core.logging import set_up_logging
@@ -39,7 +40,7 @@ app.add_middleware(
   allow_headers=["*"],
 )
 
-routes_under_api = [stock_router,news_router,fundamental_router,ingest_router,read_router,metrics_router,derived_metrics_router,trend_router,quarterly_router,technical_router,health_router,screener_router,thesis_router,thesis_router]
+routes_under_api = [stock_router,news_router,fundamental_router,ingest_router,read_router,metrics_router,derived_metrics_router,trend_router,quarterly_router,technical_router,health_router,screener_router,thesis_router,watchlist_router]
 # app.include_router(health_router)
 # app.include_router(stock_router,prefix="/api")
 for route in routes_under_api:
