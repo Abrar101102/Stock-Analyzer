@@ -92,4 +92,21 @@ export class StockApi {
       `${BASE}/thesis/${symbol}`
     )
   }
+
+  // Watchlist endpoints
+  getWatchlist(): Observable<any[]> {
+    return this.http.get<any[]>(`${BASE}/watchlist/`);
+  }
+
+  addToWatchlist(symbol: string): Observable<any> {
+    return this.http.post<any>(`${BASE}/watchlist/${symbol}`, {});
+  }
+
+  removeFromWatchlist(symbol: string): Observable<any> {
+    return this.http.delete<any>(`${BASE}/watchlist/${symbol}`);
+  }
+
+  compareWatchlist(): Observable<any[]> {
+    return this.http.get<any[]>(`${BASE}/watchlist/compare/all`);
+  }
 }
