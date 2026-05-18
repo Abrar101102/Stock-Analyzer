@@ -15,7 +15,7 @@ import { ThesisResponseModel } from '../../core/models/thesis-response.model';
 })
 export class DashboardComponent {
   readonly timeframes = ['1mo', '3mo', '6mo', '1y', '2y', '5y'];
-  readonly tabs: Array<'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'> = ['fundamentals', 'news', 'signals', 'overview','thesis'];
+  readonly tabs: Array<'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis' | 'watchlist'> = ['fundamentals', 'news', 'signals', 'overview', 'thesis', 'watchlist'];
 
   // ── State (signals — no need for cdr.detectChanges()) ─────────────────────
   loading     = signal(false);
@@ -28,7 +28,11 @@ export class DashboardComponent {
   thesis      = signal<ThesisResponseModel | null>(null);
   activeSymbol = signal('');
 
-  activeTab    = signal<'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'>('fundamentals');
+  activeTab    = signal<'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis' | 'watchlist'>('fundamentals');
+
+  watchlistData = signal<any[]>([]);
+  watchlistLoading = signal(false);
+
 
   // ── Form ──────────────────────────────────────────────────────────────────
   form: FormGroup;
@@ -52,7 +56,7 @@ export class DashboardComponent {
     this.loading.set(true);
     this.errorMsg.set('');
     this.activeSymbol.set(symbol);
-    this.activeTab.set('fundamentals');
+    this.activeTab.set('thesis');
 
     // Replace nested subscribes with forkJoin — all 3 fire in parallel
     forkJoin({
@@ -289,6 +293,44 @@ formatDate(date: string | Date | null | undefined): string {
     return 'N/A';
   }
 }
+
+
+
+  loadWatchlist(): void {
+    this.watchlistLoading.set(true);
+    this.stockApi.compareWatchlist().pipe(
+      finalize(() => this.watchlistLoading.set(false))
+    ).subscribe({
+      next: (data) => this.watchlistData.set(data),
+      error: (err) => console.error('Failed to load watchlist', err)
+    });
+  }
+
+  onAddToWatchlist(): void {
+    const symbol = this.activeSymbol();
+    if (!symbol) return;
+    this.stockApi.addToWatchlist(symbol).subscribe({
+      next: () => {
+        alert(`${symbol} added to watchlist`);
+        this.loadWatchlist();
+      },
+      error: (err) => alert(`Failed to add: ${this.extractError(err)}`)
+    });
+  }
+
+  onRemoveFromWatchlist(symbol: string): void {
+    this.stockApi.removeFromWatchlist(symbol).subscribe({
+      next: () => this.loadWatchlist(),
+      error: (err) => alert(`Failed to remove: ${this.extractError(err)}`)
+    });
+  }
+
+  setTab(tab: any): void {
+    this.activeTab.set(tab);
+    if (tab === 'watchlist') {
+      this.loadWatchlist();
+    }
+  }
 
   private extractError(err: any): string {
     return err?.error?.error?.message || err?.error?.message || err?.message || 'An unknown error occurred.';

@@ -224,9 +224,16 @@
             <div class="thesis-container">
               <div class="thesis-header">
                 <div>
-                  <p class="thesis-verdict" [class]="(ths.verdict ?? 'neutral').toLowerCase()">
-                    {{ ths.verdict ?? 'No verdict' }}
-                  </p>
+                  <div class="verdict-group">
+                    <p class="thesis-verdict" [class]="(ths.verdict ?? 'neutral').toLowerCase()">
+                      {{ ths.verdict ?? 'No verdict' }}
+                    </p>
+                    @if (ths.confidence) {
+                      <p class="thesis-confidence" [class]="ths.confidence.toLowerCase()">
+                        {{ ths.confidence }} Confidence
+                      </p>
+                    }
+                  </div>
                   <p class="thesis-summary">{{ ths.summary }}</p>
                 </div>
                 <p class="thesis-generated">{{ formatDate(ths.generated_at) }}</p>
@@ -248,6 +255,63 @@
           }
         </section>
       }
+
+      @if (activeTab() === 'watchlist') {
+        <section class="tab-panel" role="tabpanel" aria-label="watchlist">
+             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                 <h3>Watchlist & Sector Compare</h3>
+                 <button class="btn" (click)="loadWatchlist()">Refresh</button>
+             </div>
+             
+             @if (watchlistLoading()) {
+                 <p>Loading watchlist data...</p>
+             } @else if (watchlistData().length > 0) {
+                 <div class="watchlist-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                     @for (item of watchlistData(); track item.symbol) {
+                         <div class="watchlist-card" style="border:1px solid #e1e4e8; border-radius:8px; padding:16px; background:#fff; position:relative;">
+                             <button style="position:absolute; top:12px; right:12px; background:none; border:none; cursor:pointer; color:red;" (click)="onRemoveFromWatchlist(item.symbol)">&times;</button>
+                             <h4 style="margin-top:0; font-size:1.2rem; color:#172a3f;">{{ item.symbol }}</h4>
+                             
+                             @if (item.thesis) {
+                                 <div style="margin-bottom:12px;">
+                                     <span class="thesis-verdict" [class]="(item.thesis.verdict || 'neutral').toLowerCase()">{{ item.thesis.verdict || 'Neutral' }}</span>
+                                     <p style="font-size:0.9rem; margin-top:8px; color:#4b5563;">{{ item.thesis.summary }}</p>
+                                 </div>
+                             } @else {
+                                 <div style="margin-bottom:12px;"><p style="font-size:0.9rem; color:#888;">No thesis data available.</p></div>
+                             }
+                             
+                             @if (item.comparison) {
+                                 <dl style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:0.85rem; margin:0; padding-top:12px; border-top:1px solid #eee;">
+                                     @if (item.comparison.pe_comparison) {
+                                         <dt style="color:#7f8c9f;">P/E Ranking</dt>
+                                         <dd style="margin:0; font-weight:600; text-align:right;">{{ item.comparison.pe_comparison.rank }} / {{ item.comparison.pe_comparison.total_peers }}</dd>
+                                     }
+                                     @if (item.comparison.ev_ebitda_comparison) {
+                                         <dt style="color:#7f8c9f;">EV/EBITDA Rank</dt>
+                                         <dd style="margin:0; font-weight:600; text-align:right;">{{ item.comparison.ev_ebitda_comparison.rank }} / {{ item.comparison.ev_ebitda_comparison.total_peers }}</dd>
+                                     }
+                                     @if (item.comparison.roe_comparison) {
+                                         <dt style="color:#7f8c9f;">ROE Percentile</dt>
+                                         <dd style="margin:0; font-weight:600; text-align:right;">{{ item.comparison.roe_comparison.percentile }}%</dd>
+                                     }
+                                     @if (item.comparison.revenue_growth_comparison) {
+                                         <dt style="color:#7f8c9f;">Rev Growth Rank</dt>
+                                         <dd style="margin:0; font-weight:600; text-align:right;">{{ item.comparison.revenue_growth_comparison.rank }} / {{ item.comparison.revenue_growth_comparison.total_peers }}</dd>
+                                     }
+                                 </dl>
+                             } @else {
+                                 <p style="font-size:0.85rem; color:#888; border-top:1px solid #eee; padding-top:12px;">No sector comparison data available.</p>
+                             }
+                         </div>
+                     }
+                 </div>
+             } @else {
+                 <p class="muted">No symbols in watchlist.</p>
+             }
+        </section>
+      }
+
     </div>
   </section>
 </div>
