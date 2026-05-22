@@ -25,6 +25,8 @@ class Settings:
 		self.COMPOSITE_WEIGHT_TECHNICAL = float(os.getenv("COMPOSITE_WEIGHT_TECHNICAL", "0.25"))
 		self.COMPOSITE_WEIGHT_SENTIMENT = float(os.getenv("COMPOSITE_WEIGHT_SENTIMENT", "0.25"))
 		self.COMPOSITE_WEIGHT_VALUATION = float(os.getenv("COMPOSITE_WEIGHT_VALUATION", "0.25"))
+		self.FRED_API_KEY = os.getenv("FRED_API_KEY", "")
+		self.REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 
 settings = Settings()
