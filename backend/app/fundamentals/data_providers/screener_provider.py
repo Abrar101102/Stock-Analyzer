@@ -76,6 +76,25 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
     #  INTERNAL: SCRAPING & PARSING
     # ══════════════════════════════════════
 
+    from app.core.cache import redis_cache
+
+    @redis_cache(expire_seconds=86400)
+    def _fetch_html(self, url: str) -> Optional[str]:
+        try:
+            logger.info(f"Scraping screener.in: {url}")
+            response = self.session.get(url, timeout=15)
+            if response.status_code == 200:
+                time.sleep(1.5)  # Rate limiting
+                return response.text
+            elif response.status_code == 404:
+                return None
+            else:
+                logger.warning(f"Screener returned {response.status_code} for {url}")
+                return None
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to fetch screener page: {e}")
+            return None
+
     def _fetch_page(self, symbol: str) -> Optional[BeautifulSoup]:
         """
         Fetch and parse the screener.in company page.
@@ -91,20 +110,9 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
 
         for suffix in ["/consolidated/", "/"]:
             url = f"{self.BASE_URL}/{symbol}{suffix}"
-            try:
-                logger.info(f"Scraping screener.in: {url}")
-                response = self.session.get(url, timeout=15)
-
-                if response.status_code == 200:
-                    time.sleep(1.5)  # Rate limiting — be respectful
-                    return BeautifulSoup(response.text, "html.parser")
-                elif response.status_code == 404:
-                    continue
-                else:
-                    logger.warning(f"Screener returned {response.status_code} for {url}")
-
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Failed to fetch screener page: {e}")
+            html = self._fetch_html(url)
+            if html:
+                return BeautifulSoup(html, "html.parser")
 
         return None
     

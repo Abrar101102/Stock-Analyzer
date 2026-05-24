@@ -1,10 +1,12 @@
 import yfinance as yf
 import pandas as pd
+from app.core.cache import redis_cache
 
 class MarketDataSource:
   """
   Responsible for fetching raw market data
   """
+  @redis_cache(expire_seconds=3600, returns_df=True)
   def fetch_history(self,symbol:str,period:str="1y"):
     try:
       ticker = yf.Ticker(symbol)
