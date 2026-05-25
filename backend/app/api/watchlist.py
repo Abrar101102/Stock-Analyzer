@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
-from app.db.session import get_db
+from app.dependencies.db_dependency import get_db
 from app.models.watchlist import Watchlist
 from app.services.thesis_service import ThesisService
 from app.services.sector_comparision import SectorComparisionService

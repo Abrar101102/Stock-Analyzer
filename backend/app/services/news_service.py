@@ -4,11 +4,22 @@ from dataclasses import dataclass
 from typing import Any
 
 import requests
+from app.core.cache import redis_cache
 
 
 NEWS_API_URL = "https://newsapi.org/v2/everything"
 
-# Lightweight lexicon-based scoring to avoid heavy ML dependencies.
+# Load FinBERT pipeline lazily
+_finbert_pipeline = None
+
+def get_finbert_pipeline():
+    global _finbert_pipeline
+    if _finbert_pipeline is None:
+        from transformers import pipeline
+        _finbert_pipeline = pipeline("sentiment-analysis", model="ProsusAI/finbert")
+    return _finbert_pipeline
+
+
 POSITIVE_WORDS = {
     "beat",
     "beats",
@@ -67,6 +78,7 @@ class NewsService:
     def __init__(self, api_key: str | None):
         self.api_key = api_key
 
+    @redis_cache(expire_seconds=1800)
     def get_news_and_sentiment(self, symbol: str, limit: int = 10) -> dict[str, Any]:
         if not self.api_key:
             raise ValueError("NEWS_API_KEY is missing. Configure it in backend/app/core/config.py or environment variables.")
@@ -79,8 +91,7 @@ class NewsService:
             title = (item.get("title") or "").strip()
             description = (item.get("description") or "").strip()
             content_for_scoring = f"{title} {description}".strip()
-            score = self._score_sentiment(content_for_scoring)
-            label = self._label_from_score(score)
+            score, label = self._score_sentiment(content_for_scoring)
 
             articles.append(
                 ScoredArticle(
@@ -130,26 +141,30 @@ class NewsService:
 
         return payload
 
-    def _score_sentiment(self, text: str) -> float:
+    def _score_sentiment(self, text: str) -> tuple[float, str]:
         if not text:
-            return 0.0
+            return 0.0, "neutral"
 
-        tokens = [
-            token.strip(".,!?;:\"'()[]{}")
-            for token in text.lower().split()
-            if token.strip(".,!?;:\"'()[]{}")
-        ]
-
-        if not tokens:
-            return 0.0
-
-        positive_hits = sum(1 for token in tokens if token in POSITIVE_WORDS)
-        negative_hits = sum(1 for token in tokens if token in NEGATIVE_WORDS)
-
-        raw_score = positive_hits - negative_hits
-        normalized = raw_score / max(1, len(tokens) ** 0.5)
-
-        return max(-1.0, min(1.0, round(normalized, 3)))
+        try:
+            # truncate text to fit model max length
+            text_truncated = text[:1500] 
+            pipeline = get_finbert_pipeline()
+            result = pipeline(text_truncated)[0]
+            
+            label = result['label'].lower()
+            confidence = result['score']
+            
+            # Map into our -1.0 to 1.0 score range based on confidence
+            if label == "positive":
+                score = confidence
+            elif label == "negative":
+                score = -confidence
+            else:
+                score = 0.0
+                
+            return round(score, 3), label
+        except Exception:
+            return 0.0, "neutral"
 
     def _label_from_score(self, score: float) -> str:
         if score > 0.1:
