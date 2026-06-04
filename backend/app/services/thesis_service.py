@@ -9,6 +9,7 @@ from app.services.valuation_service import ValuationService
 from app.services.fundamental_read_service import FundamentalReadService
 from app.services.composite_score_service import CompositeScoreService
 from app.data_sources.market_data_source import MarketDataSource
+from app.services.macro_service import MacroService
 from app.core.exceptions import NotFoundError
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ class ThesisService:
     self.fundamental_service = fundamental_service or FundamentalReadService()
     self.composite_score_service = composite_score_service or CompositeScoreService()
     self.market_data_source = MarketDataSource()
+    self.macro_service = MacroService()
 
   def generate(self, symbol: str) -> dict[str, Any]:
     """Generate thesis with real signals from upstream services."""
@@ -83,13 +85,22 @@ class ThesisService:
     try:
       df = self.market_data_source.fetch_history(symbol, period="1y")
       if df is not None and not df.empty:
-        technical_signals = self.technical_service.get_signals(df)
+        # Before computing signals, ensure indicators exist (since fetch_history returns raw prices)
+        df_indicators = self.technical_service.compute_indicators(df.to_dict('records')) if hasattr(self.technical_service, 'compute_indicators') else df
+        
+        # detect anomalous prices / volume
+        df_indicators = self.technical_service.detect_anomalies(df_indicators) 
+        
+        technical_signals = self.technical_service.get_signals(df_indicators)
         signals["technical"] = self._map_technical_signal(technical_signals)
+        signals["anomaly"] = technical_signals.get("anomaly", False)
       else:
         signals["technical"] = "neutral"
+        signals["anomaly"] = False
     except Exception as e:
       logger.warning(f"Failed to fetch technical signals for {symbol}: {e}")
       signals["technical"] = "neutral"
+      signals["anomaly"] = False
 
     # News sentiment signal
     if self.news_service:
@@ -133,6 +144,13 @@ class ThesisService:
     else:
       signals["fundamental"] = "neutral"
 
+    # Macro signal
+    try:
+      signals["macro"] = self.macro_service.get_macro_signals()
+    except Exception as e:
+      logger.warning(f"Failed to fetch macro signals: {e}")
+      signals["macro"] = {"interest_rate": None, "inflation": None}
+
     return signals
 
   def _fallback_signals(self) -> dict[str, str]:
@@ -141,7 +159,9 @@ class ThesisService:
       "fundamental": "neutral",
       "technical": "neutral",
       "sentiment": "neutral",
-      "valuation": "fair"
+      "valuation": "fair",
+      "anomaly": False,
+      "macro": {"interest_rate": None, "inflation": None}
     }
 
   def _map_technical_signal(self, technical_signals: dict) -> str:
@@ -206,7 +226,8 @@ class ThesisService:
       # Technical metrics
       df = self.market_data_source.fetch_history(symbol, period="1y")
       if df is not None and not df.empty:
-        latest = df.iloc[-1]
+        df_indicators = self.technical_service.compute_indicators(df.to_dict('records')) if hasattr(self.technical_service, 'compute_indicators') else df
+        latest = df_indicators.iloc[-1]
         metrics["rsi"] = latest.get("rsi_14")
         metrics["macd_histogram"] = latest.get("macd_histogram")
     except:
@@ -276,6 +297,9 @@ Signals:
 - Technical: {signals.get('technical', 'unknown')}
 - Sentiment: {signals.get('sentiment', 'unknown')}
 - Valuation: {signals.get('valuation', 'unknown')}
+- Macro (Interest Rate): {signals.get('macro', {}).get('interest_rate', 'unknown')}%
+- Macro (Inflation): {signals.get('macro', {}).get('inflation', 'unknown')}%
+- Anomaly Detected: {'Yes' if signals.get('anomaly') else 'No'}
 
 Key Metrics:
 {metrics_text if metrics_text else 'No metrics available.'}

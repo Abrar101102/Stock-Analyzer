@@ -81,6 +81,38 @@ class TechnicalAnalysisService:
         """Simple rolling max of highs as resistance"""
         return df['high'].rolling(window=window, min_periods=1).max()
 
+    def detect_anomalies(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Flag unusual volume spikes or price deviations from historical patterns 
+        using IsolationForest.
+        """
+        if df.empty or len(df) < 20: # Not enough data to reliably detect anomalies
+            df['anomaly'] = False
+            return df
+            
+        try:
+            from sklearn.ensemble import IsolationForest
+            
+            # Use 'close' returns and 'volume' changes as features
+            features = pd.DataFrame()
+            features['close_pct'] = df['close'].pct_change().fillna(0)
+            features['volume_pct'] = df['volume'].pct_change().fillna(0)
+            
+            # Initialize IsolationForest with auto contamination
+            model = IsolationForest(contamination='auto', random_state=42)
+            
+            # Predict anomalies (-1 for anomaly, 1 for normal)
+            preds = model.fit_predict(features)
+            
+            # Map back to boolean column where -1 indicates anomaly
+            df['anomaly'] = (preds == -1)
+            
+        except Exception as e:
+            logger.warning(f"Anomaly detection failed: {e}")
+            df['anomaly'] = False
+            
+        return df
+
     def get_signals(self, df: pd.DataFrame) -> Dict:
         """
         Generate buy/sell signals from the latest row of indicator data.
@@ -90,6 +122,9 @@ class TechnicalAnalysisService:
 
         latest = df.iloc[-1]
         signals = {}
+
+        # Anomaly signal
+        signals['anomaly'] = bool(latest.get('anomaly', False))
 
         # RSI signals
         if latest.get('rsi_14') is not None:
