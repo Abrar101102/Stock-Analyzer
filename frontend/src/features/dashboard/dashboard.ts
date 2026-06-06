@@ -113,15 +113,19 @@ export class DashboardComponent {
     });
   }
 
-  setTab(tab: 'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'): void {
+  setTab(tab: 'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'| 'watchlist'): void {
     this.activeTab.set(tab);
+       if (tab === 'watchlist') {
+      this.loadWatchlist();
+    }
   }
 
-  tabLabel(tab: 'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'): string {
+  tabLabel(tab: 'fundamentals' | 'news' | 'signals' | 'overview' | 'thesis'|'watchlist'): string {
     if (tab === 'fundamentals') return 'Fundamental Analysis';
     if (tab === 'news') return 'News & Sentiment';
     if (tab === 'signals') return 'Signals';
     if (tab ==='thesis') return 'Investment Thesis';
+    if (tab === 'watchlist') return 'Watchlist';
     return 'Overview';
   }
 
@@ -323,13 +327,6 @@ formatDate(date: string | Date | null | undefined): string {
       next: () => this.loadWatchlist(),
       error: (err) => alert(`Failed to remove: ${this.extractError(err)}`)
     });
-  }
-
-  setTab(tab: any): void {
-    this.activeTab.set(tab);
-    if (tab === 'watchlist') {
-      this.loadWatchlist();
-    }
   }
 
   private extractError(err: any): string {
