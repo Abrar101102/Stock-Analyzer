@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import logging
 
 from app.fundamentals.data_providers.base_fundamental_provider import BaseFundamentalProvider
@@ -94,3 +94,5 @@ class FallbackFundamentalProvider(BaseFundamentalProvider):
 
     def get_cash_flows(self, symbol: str, period: str = "annual", limit: int = 5) -> List[CashFlowStatementModel]:
         return self._fetch_with_fallback("get_cash_flows", symbol, period, limit)
+    def get_latest_price(self, symbol: str, dt: date) -> Optional[float]:
+        return self._fetch_with_fallback("get_latest_price", symbol, "annual", 1)

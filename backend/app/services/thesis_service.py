@@ -307,25 +307,29 @@ Key Metrics:
 Provide a concise 1-2 sentence thesis paragraph and a clear verdict (Buy/Hold/Sell)."""
   
   def _rule_based_verdict(self, signals: dict[str, Any]) -> str:
-    """Generate verdict based on signal scores. Fixed typo: 'posetive' -> 'positive'."""
+    
     score_map = {
-      "positive": 1,
-      "bullish": 1,
-      "cheap": 1,
-      "neutral": 0,
-      "fair": 0,
-      "negative": -1,
-      "bearish": -1,
-      "expensive": -1,
-      "unknown": 0
+        "positive": 1,
+        "bullish": 1,
+        "cheap": 1,
+        "neutral": 0,
+        "fair": 0,
+        "negative": -1,
+        "bearish": -1,
+        "expensive": -1,
+        "unknown": 0
     }
 
-    score = sum(score_map.get(v, 0) for v in signals.values())
+    score = sum(
+        score_map.get(v, 0)
+        for v in signals.values()
+        if isinstance(v, str)   # ← skip macro dict and anomaly bool
+    )
 
     if score >= 2:
-      return "Buy"
+        return "Buy"
     elif score <= -2:
-      return "Sell"
+        return "Sell"
     return "Hold"
   
   def _map_verdict(self, raw: str) -> str | None:

@@ -25,3 +25,7 @@ class BaseFundamentalProvider(ABC):
   def get_available_years(self,symbol:str)->List[int]:
     """Fetch available fiscal years for a given symbol"""
     pass
+  @abstractmethod
+  def get_latest_price(self, symbol: str, dt: date) -> Optional[float]:
+    """Return the latest available price for the symbol."""
+    pass

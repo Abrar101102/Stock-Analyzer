@@ -1,3 +1,4 @@
+from app.fundamentals.data_providers.base_fundamental_provider import BaseFundamentalProvider
 from sqlalchemy.orm import Session
 from app.valuation.models.valuation_model import ValuationResponse
 from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
@@ -8,7 +9,7 @@ import json
 
 
 class ValuationService:
-  def __init__(self,price_service:BasePriceService):
+  def __init__(self,price_service:BaseFundamentalProvider):
     self.fundamental_repo = FundamentalReadRepository()
     self.price_service = price_service
     self.quarterly_service = QuarterlyTrendService()

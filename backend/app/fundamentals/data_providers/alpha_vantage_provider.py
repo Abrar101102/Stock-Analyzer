@@ -369,3 +369,15 @@ class AlphaVantageProvider(BaseFundamentalProvider):
                 continue
 
         return models
+    def get_latest_price(self, symbol: str, dt: date) -> Optional[float]:
+        try:
+            import requests
+            url = (
+                f"https://www.alphavantage.co/query"
+                f"?function=GLOBAL_QUOTE&symbol={symbol}&apikey={self.api_key}"
+            )
+            data = requests.get(url).json()
+            price = data["Global Quote"]["05. price"]
+            return float(price)
+        except Exception:
+            return None

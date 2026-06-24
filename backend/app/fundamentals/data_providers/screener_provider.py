@@ -571,3 +571,34 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
             )
 
         return models
+    def get_latest_price(self, symbol: str, dt: date) -> Optional[float]:
+        
+        symbol = self._normalize_for_screener(symbol)
+        soup = self._fetch_page(symbol)
+
+        if soup is None:
+            # Try pulling from already-parsed cache via get_company_overview
+            try:
+                overview = self.get_company_overview(symbol)
+                return overview.get("price")
+            except Exception:
+                return None
+
+        ratios_ul = soup.find("ul", id="top-ratios")
+        if not ratios_ul:
+            return None
+
+        for li in ratios_ul.find_all("li"):
+            name_span = li.find("span", class_="name")
+            value_span = li.find("span", class_="number")
+
+            if name_span and value_span:
+                label = name_span.text.strip()
+                if label == "Current Price":
+                    val_text = value_span.text.replace(",", "").strip()
+                    try:
+                        return float(val_text)
+                    except ValueError:
+                        return None
+
+        return None

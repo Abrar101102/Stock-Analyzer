@@ -1,3 +1,4 @@
+from app.fundamentals.data_providers.fallback_fundamental_provider import FallbackFundamentalProvider
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.services.thesis_service import ThesisService
@@ -37,7 +38,7 @@ def get_thesis_service(
     llm_provider = StubLLMProvider()
 
   # Wire all services
-  price_service = BasePriceService()
+  price_service = FallbackFundamentalProvider()  
   technical_service = TechnicalAnalysisService()
   valuation_service = ValuationService(price_service)
   fundamental_service = FundamentalReadService()

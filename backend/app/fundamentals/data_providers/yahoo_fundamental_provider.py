@@ -5,7 +5,7 @@ from app.fundamentals.models.cash_flow_model import CashFlowStatementModel
 
 from datetime import date
 import yfinance as yf
-from typing import List
+from typing import List,Optional
 import pandas as pd
 import logging
 
@@ -222,4 +222,14 @@ class YahooFundamentalProvider(BaseFundamentalProvider):
             )
 
         return models
+    
+    def get_latest_price(self, symbol: str, dt: date) -> Optional[float]:
+        try:
+            ticker = yf.Ticker(f"{symbol}.NS")  # .NS for NSE, adjust as needed
+            hist = ticker.history(period="2d")
+            if not hist.empty:
+                return float(hist["Close"].iloc[-1])
+            return None
+        except Exception:
+            return None
     
