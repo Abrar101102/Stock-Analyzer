@@ -7,6 +7,14 @@ from app.services.thesis_service import ThesisService
 from app.models.thesis_cache import ThesisCache
 from app.models.response.thesis_model import ThesisResponseModel
 
+def _score_to_confidence(score: float) -> str:
+    if score >= 80:
+        return "High"
+    elif score >= 50:
+        return "Medium"
+    return "Low"
+
+
 router = APIRouter(prefix="/thesis",tags = ["thesis"])
 
 @router.get("/{symbol}")
@@ -28,6 +36,7 @@ def get_thesis(symbol:str,service:ThesisService = Depends(get_thesis_service),db
       summary=cached.summary,
       signals=cached.signals,
       generated_at=cached.generated_at,
+      confidence=_score_to_confidence(cached.composite_score)
     )
 
   response = service.generate(normalized_symbol)
@@ -52,6 +61,7 @@ def get_thesis(symbol:str,service:ThesisService = Depends(get_thesis_service),db
       summary=payload["summary"],
       signals=payload["signals"],
       generated_at=payload["generated_at"],
+      # confidence=_score_to_confidence(payload['composite_score'])
     ))
 
   db.commit()
