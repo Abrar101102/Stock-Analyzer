@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import logging
 import sys
 from app.core.logging_filter import RequestIDFilter
@@ -26,3 +28,31 @@ def set_up_logging(level=logging.INFO):
       logging.StreamHandler(sys.stdout)
     ]
   )
+
+def trace(func):
+  """Decorator to log function entry and exit with arguments and return value."""
+  logger = logging.getLogger(func.__module__)
+
+  @functools.wraps(func)
+  async def async_wrapper(*args, **kwargs):
+      logger.debug(f"Entering {func.__qualname__} with args: {args}, kwargs: {kwargs}")
+      try:
+         result = await func(*args, **kwargs)
+         logger.debug(f"Exiting {func.__qualname__} returned with result: {result}")
+         return result
+      except Exception as e:
+         logger.exception(f"Exception in {func.__qualname__}: {e}")
+         raise
+  
+  @functools.wraps(func)
+  async def sync_wrapper(*args, **kwargs):
+      logger.debug(f"Entering {func.__qualname__} with args: {args}, kwargs: {kwargs}")
+      try:
+         result = func(*args, **kwargs)
+         logger.debug(f"Exiting {func.__qualname__} returned with result: {result}")
+         return result
+      except Exception as e:
+         logger.exception(f"Exception in {func.__qualname__}: {e}")
+         raise
+  
+  return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
