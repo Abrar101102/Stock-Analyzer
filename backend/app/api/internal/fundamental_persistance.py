@@ -5,6 +5,7 @@ from datetime import date
 from app.dependencies.db_dependency import get_db
 from app.dependencies.fundamental_persistance_dependency import get_fundamental_persistance_service
 from app.dependencies.fundamental_ingestion_dependency import get_ingestion_service
+from app.core.logging import trace
 
 router = APIRouter(
   prefix="/internal/fundamentals",
@@ -12,6 +13,7 @@ router = APIRouter(
 )
 
 @router.post("/ingest/{symbol}/{fiscal_year}")
+@trace
 def ingest_snapshot(
     symbol:str,
     fiscal_year:int,
@@ -25,6 +27,7 @@ def ingest_snapshot(
   )
 
 @router.post("/backfill/{symbol}")
+@trace
 def backfill_symbol(
     symbol:str,
     db:Session = Depends(get_db),
@@ -36,6 +39,7 @@ def backfill_symbol(
   )
 
 @router.get("/{symbol}/{fiscal_year}/latest")
+@trace
 def get_latest(
     symbol:str,
     fiscal_year:int,

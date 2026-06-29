@@ -1,9 +1,12 @@
 from fastapi import APIRouter
 from app.core.metrics import REQUEST_COUNT,REQUEST_LATENCY,ERROR_COUNT
+from app.core.logging import trace
 
 router = APIRouter(tags= ["METRICS"])
 
-router.get("/metrics")
+@router.get("/metrics")
+@trace
+
 def metrics():
   return {
     "request":dict(REQUEST_COUNT),

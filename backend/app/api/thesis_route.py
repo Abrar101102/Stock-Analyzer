@@ -6,8 +6,11 @@ from app.dependencies.db_dependency import get_db
 from app.services.thesis_service import ThesisService
 from app.models.thesis_cache import ThesisCache
 from app.models.response.thesis_model import ThesisResponseModel
+from app.core.logging import trace
 
+@trace
 def _score_to_confidence(score: float) -> str:
+    
     if score >= 80:
         return "High"
     elif score >= 50:
@@ -18,6 +21,7 @@ def _score_to_confidence(score: float) -> str:
 router = APIRouter(prefix="/thesis",tags = ["thesis"])
 
 @router.get("/{symbol}")
+@trace
 def get_thesis(symbol:str,service:ThesisService = Depends(get_thesis_service),db:Session = Depends(get_db)):
   if not symbol.isalpha() or len(symbol)> 10:
     raise HTTPException(status_code = 400,detail = "Invalid Symbol")

@@ -3,12 +3,13 @@ import requests
 
 from app.dependencies.news_dependency import get_news_service
 from app.services.news_service import NewsService
-
+from app.core.logging import trace
 
 router = APIRouter(prefix="/news", tags=["News"])
 
 
 @router.get("/{symbol}")
+@trace
 def get_news_for_symbol(
     symbol: str,
     limit: int = Query(10, ge=1, le=30),

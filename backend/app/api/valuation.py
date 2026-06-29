@@ -5,11 +5,14 @@ from dependencies.db_dependency import get_db
 from backend.app.services.valuation_service import ValuationService
 from app.market_data.base_price_service import BasePriceService
 
+from app.core.logging import trace
+
 router = APIRouter("/valuation",tags=["Valuation"])
 
 price_service = BasePriceService() 
 
 @router.get("/{symbol}")
+@trace
 def get_valuation(symbol:str,db:Session=Depends(get_db)):
   service = ValuationService(price_service)
   try:

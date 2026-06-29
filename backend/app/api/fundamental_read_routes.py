@@ -3,12 +3,14 @@ from sqlalchemy.orm import Session
 from datetime import date
 from app.dependencies.db_dependency import get_db
 from app.services.fundamental_read_service import FundamentalReadService
+from app.core.logging import trace
 
 router =APIRouter(prefix='/fundamentals',tags=['Fundamentals'])
 
 service = FundamentalReadService()
 
 @router.get("/{symbol}/{fiscal_year}")
+@trace
 def get_fundamental_snapshot(symbol:str,fiscal_year:int,as_of:date|None = Query(default=None),db:Session = Depends(get_db)):
   try:
     snapshot = service.get_snapshot(db,symbol,fiscal_year,as_of)
@@ -22,6 +24,7 @@ def get_fundamental_snapshot(symbol:str,fiscal_year:int,as_of:date|None = Query(
     raise HTTPException(status_code=500,detail=str(e))
   
 @router.get("/{symbol}/{fiscal_year}/income")
+@trace
 def get_income_statement(
   symbol:str,
   fiscal_year:int,
@@ -36,6 +39,7 @@ def get_income_statement(
   return entity.income_statement
             
 @router.get("/{symbol}/{fiscal_year}/balance_sheet")
+@trace
 def get_balance_sheet(
   symbol:str,
   fiscal_year:int,

@@ -8,10 +8,12 @@ from app.services.sector_comparision import SectorComparisionService
 from app.services.valuation_service import ValuationService
 from app.market_data.base_price_service import BasePriceService
 from app.services.trend_service import TrendService
+from app.core.logging import trace
 
 router = APIRouter(prefix="/watchlist", tags=["Watchlist"])
 
 @router.get("/")
+@trace
 def get_watchlist(db: Session = Depends(get_db)):
     items = db.query(Watchlist).order_by(Watchlist.added_at.desc()).all()
     return [{"symbol": item.symbol, "added_at": item.added_at} for item in items]

@@ -4,12 +4,14 @@ from app.dependencies.db_dependency import get_db
 from app.services.sector_comparision import SectorComparisionService
 from app.services.valuation_service import ValuationService
 from app.market_data.base_price_service import BasePriceService
+from app.core.logging import trace
 
 router = APIRouter("/sector-compare",tags = ["Sector Comparison"])
 
 price_Service = BasePriceService()
 
 @router.get("/{symbol}/{fiscal_year}")
+@trace
 def compare_sector(symbol:str,fiscal_year:int,db:Session=Depends(get_db)):
   try:
 

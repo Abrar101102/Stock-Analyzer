@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from app.dependencies.technical_dependency import get_technical_orchestrator
 from app.utils.json_sanitize import sanitize_json_floats
+from app.core.logging import trace
+
 router = APIRouter(prefix="/technical", tags=["Technical Analysis"])
 
 
 @router.get("/{symbol}/indicators")
+@trace
 def get_technical_indicators(
     symbol: str,
     period: str = Query("1y", description="1mo, 3mo, 6mo, 1y, 2y, 5y"),
@@ -27,6 +30,7 @@ def get_technical_indicators(
 
 
 @router.get("/{symbol}/signals")
+@trace
 def get_signals_only(
     symbol: str,
     period: str = Query("1y"),
