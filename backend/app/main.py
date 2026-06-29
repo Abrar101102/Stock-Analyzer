@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.health import router as health_router
@@ -28,7 +30,7 @@ Base.metadata.create_all(bind=engine)# Responsible for creating Table if not cre
 
 app = FastAPI(title="Stock Analyzer",lifespan=lifespan)
 
-set_up_logging()
+set_up_logging(level=logging.DEBUG)
 app.middleware("http")(request_context_middleware)
 app.middleware("http")(metrics_middleware)
 app.add_exception_handler(DomainError,domain_error_handler)
