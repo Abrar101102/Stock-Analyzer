@@ -5,13 +5,14 @@ from typing import Any
 
 import requests
 from app.core.cache import redis_cache
-
+from app.core.logging import trace
 
 NEWS_API_URL = "https://newsapi.org/v2/everything"
 
 # Load FinBERT pipeline lazily
 _finbert_pipeline = None
 
+@trace
 def get_finbert_pipeline():
     global _finbert_pipeline
     if _finbert_pipeline is None:
@@ -79,6 +80,7 @@ class NewsService:
         self.api_key = api_key
 
     @redis_cache(expire_seconds=1800)
+    @trace
     def get_news_and_sentiment(self, symbol: str, limit: int = 10) -> dict[str, Any]:
         if not self.api_key:
             raise ValueError("NEWS_API_KEY is missing. Configure it in backend/app/core/config.py or environment variables.")
@@ -117,12 +119,14 @@ class NewsService:
             "articles": [article.__dict__ for article in articles],
         }
 
+    @trace
     def _build_query(self, symbol: str) -> str:
         normalized = symbol.upper().strip()
         if normalized == "TCS":
             return "TCS stock OR Tata Consultancy Services"
         return f"{normalized} stock"
 
+    @trace
     def _fetch_news(self, query: str, limit: int) -> dict[str, Any]:
         params = {
             "q": query,
@@ -141,6 +145,7 @@ class NewsService:
 
         return payload
 
+    @trace
     def _score_sentiment(self, text: str) -> tuple[float, str]:
         if not text:
             return 0.0, "neutral"
@@ -166,6 +171,7 @@ class NewsService:
         except Exception:
             return 0.0, "neutral"
 
+    @trace
     def _label_from_score(self, score: float) -> str:
         if score > 0.1:
             return "positive"
@@ -173,6 +179,7 @@ class NewsService:
             return "negative"
         return "neutral"
 
+    @trace
     def _aggregate_sentiment(self, articles: list[ScoredArticle]) -> dict[str, Any]:
         if not articles:
             return {

@@ -4,12 +4,13 @@ from app.fundamentals.mappers.fundamental_snapshot_mapper import FundamentalSnap
 from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
 from app.registry.stock_registry import StockRegistry
 from app.core.exceptions import NotFoundError
-
+from app.core.logging import trace
 
 class FundamentalReadService:
   def __init__(self):
     self.repository = FundamentalReadRepository()
-      
+
+  @trace   
   def get_snapshot(
       self,
       db:Session,

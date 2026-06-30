@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict
 from app.core.config import settings
-
+from app.core.logging import trace
 
 class CompositeScoreService:
   def __init__(self, weights: Dict[str, float] | None = None) -> None:
@@ -14,6 +14,7 @@ class CompositeScoreService:
     }
     self.weights = weights or default_weights
 
+  @trace
   def compute(self, signals: Dict[str, str] | None) -> float:
     if signals is None:
       signals = {}

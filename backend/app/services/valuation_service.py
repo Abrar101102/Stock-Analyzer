@@ -5,6 +5,7 @@ from app.fundamentals.repositories.fundamental_read_repository import Fundamenta
 from app.services.quarterly_trend_service import QuarterlyTrendService
 from app.core.exceptions import NotFoundError
 from app.market_data.base_price_service import BasePriceService
+from app.core.logging import trace
 import json
 
 
@@ -15,6 +16,7 @@ class ValuationService:
     self.quarterly_service = QuarterlyTrendService()
 
   #Internal method to compute various metrics, can be extended in future for more complex calculations or to fetch additional data as needed
+  @trace
   def _compute_metrics(self,db:Session,symbol:str):
     snapshot = self.fundamental_repo.get_latest_snapshot_for_symbol(db,symbol)
 
@@ -66,18 +68,22 @@ class ValuationService:
       "price_to_book": price_to_book
     }
   
+  @trace
   def get_pe_ratio(self,db:Session,symbol:str):
     metrics = self._compute_metrics(db,symbol)
     return round(metrics["pe_ratio"],2) if metrics["pe_ratio"] else None
   
+  @trace
   def get_ev_ebitda(self,db:Session,symbol:str):
     metrics = self._compute_metrics(db,symbol)
     return round(metrics["ev_ebitda"],2) if metrics["ev_ebitda"] else None
   
+  @trace
   def get_price_to_book(self,db:Session,symbol:str):
     metrics = self._compute_metrics(db,symbol)
     return round(metrics["price_to_book"],2) if metrics["price_to_book"] else None
 
+  @trace
   def get_valuation(self,db:Session,symbol:str)->ValuationResponse:
     snapshot = self.fundamental_repo.get_latest_snapshot_for_symbol(db,symbol)
 

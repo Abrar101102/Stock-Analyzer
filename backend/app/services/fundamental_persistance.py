@@ -3,12 +3,15 @@ from sqlalchemy.orm import Session
 from app.fundamentals.repositories.fundamental_write_repository import FundamentalWriteRepository
 from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
 from app.core.exceptions import ValidationError,NotFoundError
+from app.core.logging import trace
+
 class FundamentalPersistanceProvider:
 
   def __init__(self):
     self.write_repo = FundamentalWriteRepository()
     self.read_repo = FundamentalReadRepository()
-
+  
+  @trace
   def ingest_fundamental_snapshot(
       self,
       db:Session,
@@ -43,6 +46,7 @@ class FundamentalPersistanceProvider:
       data=data
     )
   
+  @trace
   def fetch_latest(self,db:Session,symbol:str,fiscal_year:int):
 
     snapshot = self.read_repo.get_latest(db,symbol,fiscal_year)
@@ -55,6 +59,8 @@ class FundamentalPersistanceProvider:
     
     return snapshot
   
+
+  @trace
   def fetch_as_of(self,db:Session,symbol:str,fiscal_year:int,as_of_date:date):
     snapshot = self.read_repo.get_as_of(db,symbol,fiscal_year,as_of_date)
 

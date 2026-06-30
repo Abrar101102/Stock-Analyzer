@@ -3,12 +3,14 @@ from typing import List
 from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
 from app.fundamentals.models.trend_model import TrendResponse,YearTrend
 from app.core.exceptions import NotFoundError
+from app.core.logging import trace
 import json
 
 class TrendService:
   def __init__(self):
     self.repository = FundamentalReadRepository()
   
+  @trace
   def get_trends(self,db:Session,symbol:str,limit:int=5)->TrendResponse:
     snapshots = self.repository.get_latest_years(db=db,symbol=symbol,limit=limit)
 
@@ -70,6 +72,7 @@ class TrendService:
       cagr_5yr = cagr_5yr
     )
   # @staticmethod
+  @trace
   def calcultate_cagr(self,snapshots:List,years:int):
     if len(snapshots) < years+1:
       raise NotFoundError(

@@ -10,6 +10,8 @@ from dataclasses import asdict
 from typing import List
 import logging
 
+from app.core.logging import trace
+
 logger = logging.getLogger(__name__)
 max_limit = 50
 
@@ -29,12 +31,14 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
 """
   def  __init__(self,provider:BaseFundamentalProvider):
     self.provider = provider
-    
+  
+  @trace
   def _normalize_symbol(self,symbol:str)->str:
     # Check if symbol is in registry and return normalized version if it exists 
     stock = StockRegistry.get_stock(symbol,db)
     return stock.yahoo_symbol
   
+  @trace
   def _validate_limit(self,limit:int)->int:
     if limit <=0:
       raise ValidationError(
@@ -63,6 +67,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       )
     return limit
   
+  @trace
   def _select_snapshot(self, statements, fiscal_year, period: str, fiscal_quarter=None):
     print(f"Selecting snapshot for fiscal_year={fiscal_year}, period={period}, fiscal_quarter={fiscal_quarter}")
     print(f"Statement value is ",statements)
@@ -86,6 +91,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     print(f"FAILED TO FIND MATCH in {len(statements)} records")
     return None
 
+  @trace
   def _assert_sorted_desc(self,items):
     keys = [
         (x.fiscal_year, getattr(x, "fiscal_quarter", None))
@@ -106,10 +112,13 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
 
     return items
   
+  @trace
   def _period_key(self,model):
     return(
       model.fiscal_year,getattr(model,"fiscal_quarter",None)
     )
+  
+  @trace
   def _sort_desc(self, items):
     return sorted(
         items,
@@ -118,6 +127,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     )
   
   # In fundamental_service.py — not in the provider
+  @trace
   def get_available_periods(self, symbol: str, period: str):
       """Returns only periods where all 3 filtered statements exist."""
       # symbol = self._normalize_symbol(symbol)
@@ -156,6 +166,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
 
       return inc_periods & bs_periods & cf_periods
   
+  @trace
   def get_quarterly_income_snapshot(self, symbol: str, fiscal_year: int, fiscal_quarter: int):
     # IMPORTANT: do not call get_fundamentals() here because it enforces BS+CF existence.
     limit = 50  # pull enough quarters to cover multiple years
@@ -208,6 +219,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         "cash_flow_statement": None,
     }
   
+  @trace
   def get_fundamental_snapshot(self, symbol: str, fiscal_year: int, period: str = "annual", fiscal_quarter: int | None = None) -> FundamentalSnapshotModel:
 
     logger.info(
@@ -264,6 +276,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       shareholders_equity=balance_sheet.shareholders_equity
     )
 
+  @trace
   def _reconcile_effective_date(self, income, balance_sheet, cash_flow):
     """
     Reconcile effective_date when statements come from different providers.
@@ -305,8 +318,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
     return dates[0]
   
 
-  
-
+  @trace
   def get_fundamentals(self,symbol:str,fiscal_year:int,period:str="annual",limit:int=5) -> dict:
 
     logger.info(
@@ -412,7 +424,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
       "cash_flows": cashflows_sorted[:limit]
     }
   
-
+  @trace
   def get_ratios(self,symbol:str,period:str="annual",limit:int=5) -> List[FinancialRatioModel]:
   
     logger.info(
@@ -470,6 +482,7 @@ Providers MUST stay dumb: no limits, no assumptions, no index [0].
         
     return ratio_fiscal_year
   
+  @trace
   def missing_years_snapshots(self,symbol:str,period:str="annual",stored_periods=None)-> List[FundamentalSnapshotModel]:
     """
     Backfills missing years by fetching additional data from provider and creating synthetic snapshots for missing years.

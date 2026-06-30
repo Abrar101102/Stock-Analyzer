@@ -3,6 +3,7 @@ import logging
 from typing import Dict, Optional
 from app.core.config import settings
 from app.core.cache import redis_cache
+from app.core.logging import trace
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class MacroService:
     BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
 
     @redis_cache(expire_seconds=86400) # cache for 24h as macro data updates daily/monthly
+    @trace
     def get_macro_signals(self) -> Dict[str, Optional[float]]:
         if not hasattr(settings, 'FRED_API_KEY') or not settings.FRED_API_KEY:
             logger.warning("FRED_API_KEY is not configured. Macro signals disabled.")
@@ -28,7 +30,9 @@ class MacroService:
         signals["inflation"] = self._fetch_latest_fred_series("CPIAUCSL", units="pc1")
 
         return signals
+    
 
+    @trace
     def _fetch_latest_fred_series(self, series_id: str, units: str = "lin") -> Optional[float]:
         try:
             params = {

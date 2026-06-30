@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.technical_indicator import TechnicalIndicator
 from datetime import date, timedelta
 from typing import Dict, Optional, List
+from app.core.logging import trace
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ class TechnicalOrchestratorService:
         self.analysis = analysis_service
         self.persistence = persistence_service
 
+    @trace
     def get_indicators(
         self,
         db: Session,
@@ -83,6 +85,7 @@ class TechnicalOrchestratorService:
             "signals": signals,
         }
 
+    @trace
     def _get_cached_indicators(self, db: Session, symbol: str, staleness_days:int) -> Optional[List]:
         """
         Two-step check:
@@ -116,6 +119,7 @@ class TechnicalOrchestratorService:
 
         return rows if rows else None
 
+    @trace
     def _format_response(self, symbol: str, period: str, rows: List) -> Dict:
         """Format DB rows into API response."""
         data = []

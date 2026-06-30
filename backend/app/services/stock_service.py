@@ -4,6 +4,7 @@ from app.registry.stock_registry import StockRegistry
 from app.data_providers.base_provider import MarketDataProvider
 from app.registry.symbol_resolver import SymbolResolver
 from app.core.exceptions import NotFoundError
+from app.core.logging import trace
 import logging
 
 # Map provider class → provider name for symbol resolution
@@ -28,6 +29,7 @@ class StockService:
   def _canonical_symbol(self, symbol: str) -> str:
     return symbol.upper().strip().split(".")[0]
 
+  @trace
   def _register_symbol_if_missing(self, symbol: str):
     canonical = self._canonical_symbol(symbol)
     if StockRegistry.exists(canonical, self.db):
@@ -44,6 +46,7 @@ class StockService:
     )
     logger.info("Auto-registered symbol after provider success", extra={"symbol": canonical})
 
+  @trace
   def _provider_candidates(self, symbol: str) -> List[str]:
     normalized = symbol.upper().strip()
     candidates = [normalized]
@@ -52,6 +55,7 @@ class StockService:
       candidates.append(f"{normalized}.BO")
     return candidates
 
+  @trace
   def _fetch_with_fallback(self, symbol: str, period: str) -> List[Dict]:
     errors: List[str] = []
     for candidate in self._provider_candidates(symbol):
@@ -69,6 +73,7 @@ class StockService:
       details={"received": symbol, "attempts": errors},
     )
 
+  @trace
   def get_price_history(self,symbol:str,period:str="6mo")->List[Dict]:
     normalized = symbol.upper().strip()
     if not StockRegistry.exists(normalized, self.db):

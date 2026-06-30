@@ -2,6 +2,8 @@ from dataclasses import asdict
 from datetime import date
 import json
 from app.models.fundamental_snapshot import FundamentalSnapshot
+from app.core.logging import trace
+
 class FundamentalIngestionService:
   def __init__(self,provider_service,persistance_service):
     
@@ -13,6 +15,7 @@ class FundamentalIngestionService:
         return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
   
+  @trace
   def ingest_symbol_year(self,db,symbol,fiscal_year):
     snapshot = self.provider_service.get_fundamental_snapshot(
       symbol=symbol,
@@ -30,6 +33,8 @@ class FundamentalIngestionService:
       effective_date=effective_date,
       data=data_dict
     )
+  
+  @trace
   def backfill_symbol_year(self,db,symbol:str):
     stored_years = {
       row.fiscal_year

@@ -2,6 +2,7 @@ from dataclasses import asdict, is_dataclass
 from datetime import date
 import json
 from app.models.quarterly_snapshot_model import QuarterlyFundamentalSnapshot
+from app.core.logging import trace
 
 class QuarterlyIngestionService:
   def __init__(self,provider_service,persistance_service):
@@ -18,6 +19,7 @@ class QuarterlyIngestionService:
         return obj.__dict__
     raise TypeError(f"Type {type(obj)} is not serializable")
   
+  @trace
   def ingest_symbol_quarter(self,db,symbol:str,fiscal_year:int,fiscal_quarter:int):
     snapshot = self.provider_service.get_quarterly_income_snapshot(
       symbol=symbol,
@@ -38,6 +40,7 @@ class QuarterlyIngestionService:
       data = data_dict
     )
   
+  @trace
   def backfill_symbol_quarters(self,db,symbol:str):
 
     stored_quarters = {

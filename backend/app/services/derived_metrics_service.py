@@ -2,12 +2,16 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.fundamentals.repositories.fundamental_read_repository import FundamentalReadRepository
 from app.fundamentals.models.financial_ratio_model import FinancialRatioModel
+from app.core.logging import trace
 import json
+
+
 class DerivedMetricsService:
 
   def __init__(self):
     self.repository = FundamentalReadRepository()
       
+  @trace    
   def get_ratios(self,db:Session,symbol:str,limit:int=5) -> List[FinancialRatioModel]:
 
     snapshots= self.repository.get_latest_for_symbol(db,symbol,limit)

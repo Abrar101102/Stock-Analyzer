@@ -1,6 +1,8 @@
 from app.models.quarterly_snapshot_model import QuarterlyFundamentalSnapshot
+from app.core.logging import trace
 
 class QuarterlyPersistanceService:
+  @trace
   def ingest_quarterly_snapshot(
       self,db,symbol,fiscal_year,fiscal_quarter,effective_date,data
   ):

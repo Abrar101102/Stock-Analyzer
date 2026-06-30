@@ -1,6 +1,7 @@
 from app.fundamentals.repositories.quarterly_read_repository import QuarterlyReadReository
 from app.core.exceptions import NotFoundError
 from sqlalchemy.orm import Session
+from app.core.logging import trace
 import json
 
 class QuarterlyTrendService:
@@ -12,6 +13,7 @@ class QuarterlyTrendService:
       return None
     return a/b
 
+  @trace
   def get_ttm(self,db:Session,symbol:str,metric_key):
     quarters = self.quarterly_repo.get_last_n_quarters(db,symbol,4)
 
@@ -35,6 +37,7 @@ class QuarterlyTrendService:
 
     return total
   
+  @trace
   def get_qoq_growth(self,db:Session,symbol:str,metric_key,offset:int=0):
     quarters = self.quarterly_repo.get_last_n_quarters(db,symbol,offset+2)
 
@@ -54,6 +57,7 @@ class QuarterlyTrendService:
 
     return growth * 100 if growth is not None else None
   
+  @trace
   def get_yoy_growth(self,db:Session,symbol:str,metric_key):
     quarters = self.quarterly_repo.get_last_n_quaters(db,symbol,5)
 
@@ -73,6 +77,7 @@ class QuarterlyTrendService:
 
     return growth * 100 if growth is not None  else None
   
+  @trace
   def get_earning_acceleration(self,db:Session,symbol:str,metric_key):
     current_qoq = self.get_qoq_growth(db,symbol,metric_key,offset=0)
     previous_qoq = self.get_qoq_growth(db,symbol,metric_key,offset=1)
@@ -82,6 +87,7 @@ class QuarterlyTrendService:
     
     return current_qoq - previous_qoq
   
+  @trace
   def get_momentum_score(self,db:Session,symbol,metric_key):
     yoy=self.get_yoy_growth(db,symbol,metric_key)
     qoq = self.get_qoq_growth(db,symbol,metric_key)
@@ -94,6 +100,7 @@ class QuarterlyTrendService:
 
     return round(score,2)
   
+  @trace
   def build_quarterly_snapshot(self, db: Session, symbol: str):
 
     return {

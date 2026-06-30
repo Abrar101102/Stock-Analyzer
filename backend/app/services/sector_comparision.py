@@ -9,12 +9,14 @@ from app.models.response.sector_comparison_model import (
     MetricComparison,
     SectorThesisVerdict
 )
+from app.core.logging import trace
 
 class SectorComparisionService:
   def __init__(self,valuation_service,trend_service):
     self.valuation_service = valuation_service
     self.trend_service = trend_service
 
+  @trace
   def _compare_metric(self, db: Session, symbol: str, metric_getter: Callable[[Session, str], Any], higher_is_better: bool = False):
     try:
         peers = StockRegistry.get_peers(symbol, db)
@@ -56,6 +58,7 @@ class SectorComparisionService:
         "total_peers": len(numbers)
     }
 
+  @trace
   def get_roe(self, db, s):
     try:
         trends = self.trend_service.get_trends(db, s, limit=2)
@@ -65,6 +68,7 @@ class SectorComparisionService:
         pass
     return None
 
+  @trace
   def get_revenue_growth(self, db, s):
     try:
         trends = self.trend_service.get_trends(db, s, limit=2)
@@ -74,24 +78,30 @@ class SectorComparisionService:
         pass
     return None
 
+  @trace
   def compare_pe_ratio(self,db:Session,symbol:str):
     res = self._compare_metric(db, symbol, self.valuation_service.get_pe_ratio, higher_is_better=False)
     if not res:
         raise NotFoundError(code="NO_PEERS_FOUND", message=f"No peer PE metrics found for symbol {symbol}")
     return res
 
+  @trace
   def compare_ev_ebitda(self, db: Session, symbol: str):
       return self._compare_metric(db, symbol, self.valuation_service.get_ev_ebitda, higher_is_better=False)
 
+  @trace
   def compare_price_to_book(self, db: Session, symbol: str):
       return self._compare_metric(db, symbol, self.valuation_service.get_price_to_book, higher_is_better=False)
 
+  @trace
   def compare_roe(self, db: Session, symbol: str):
       return self._compare_metric(db, symbol, self.get_roe, higher_is_better=True)
 
+  @trace
   def compare_revenue_growth(self, db: Session, symbol: str):
       return self._compare_metric(db, symbol, self.get_revenue_growth, higher_is_better=True)
 
+  @trace
   def generate_sector_thesis(self, symbol: str, pe_cmp, ev_ebitda_cmp, pb_cmp, roe_cmp, rev_growth_cmp) -> SectorThesisVerdict:
       obs = []
       is_value = False
@@ -145,6 +155,7 @@ class SectorComparisionService:
           key_observations=obs
       )
 
+  @trace
   def compare_all_metrics(self, db: Session, symbol: str) -> SectorComparisonResponse:
       try:
            pe = self.compare_pe_ratio(db, symbol)

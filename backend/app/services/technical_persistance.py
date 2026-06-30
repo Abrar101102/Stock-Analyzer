@@ -3,6 +3,7 @@ from app.models.technical_indicator import TechnicalIndicator
 from sqlalchemy.dialects.postgresql import insert
 from app.utils.sanitize import sanitize_value
 from app.db.session import SessionLocal
+from app.core.logging import trace
 from datetime import datetime
 import pandas as pd
 import logging
@@ -19,6 +20,7 @@ class TechnicalPersistanceService:
         'support_level', 'resistance_level'
     ]
 
+    @trace
     def persist_indicators(self, symbol: str, df: pd.DataFrame):
         session: Session = SessionLocal()
         try:

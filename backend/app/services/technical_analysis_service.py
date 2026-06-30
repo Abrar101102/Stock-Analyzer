@@ -5,6 +5,7 @@ from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
 from ta.volume import VolumeWeightedAveragePrice
 from typing import List, Dict, Optional
+from app.core.logging import trace
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ class TechnicalAnalysisService:
     Uses the `ta` library for indicator calculations.
     """
 
+    @trace
     def compute_indicators(self, price_data: List[Dict]) -> pd.DataFrame:
         """
         Takes raw OHLCV data and returns a DataFrame with all indicators computed.
@@ -81,6 +83,7 @@ class TechnicalAnalysisService:
         """Simple rolling max of highs as resistance"""
         return df['high'].rolling(window=window, min_periods=1).max()
 
+    @trace
     def detect_anomalies(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Flag unusual volume spikes or price deviations from historical patterns 
@@ -113,6 +116,7 @@ class TechnicalAnalysisService:
             
         return df
 
+    @trace
     def get_signals(self, df: pd.DataFrame) -> Dict:
         """
         Generate buy/sell signals from the latest row of indicator data.

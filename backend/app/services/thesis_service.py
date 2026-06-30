@@ -11,6 +11,7 @@ from app.services.composite_score_service import CompositeScoreService
 from app.data_sources.market_data_source import MarketDataSource
 from app.services.macro_service import MacroService
 from app.core.exceptions import NotFoundError
+from app.core.logging import trace
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class ThesisService:
     self.market_data_source = MarketDataSource()
     self.macro_service = MacroService()
 
+  @trace
   def generate(self, symbol: str) -> dict[str, Any]:
     """Generate thesis with real signals from upstream services."""
     try:
@@ -77,6 +79,7 @@ class ThesisService:
       generated_at=datetime.now(timezone.utc)
     )
 
+  @trace
   def _gather_signals(self, symbol: str) -> dict[str, str]:
     """Assemble signals from all upstream services."""
     signals = {}
@@ -153,6 +156,7 @@ class ThesisService:
 
     return signals
 
+  @trace
   def _fallback_signals(self) -> dict[str, str]:
     """Return neutral signals when data retrieval fails."""
     return {
@@ -164,6 +168,7 @@ class ThesisService:
       "macro": {"interest_rate": None, "inflation": None}
     }
 
+  @trace
   def _map_technical_signal(self, technical_signals: dict) -> str:
     """Map technical indicators to bullish/neutral/bearish."""
     if not technical_signals:
@@ -183,6 +188,7 @@ class ThesisService:
       return "bearish"
     return "neutral"
 
+  @trace
   def _map_valuation_signal(self, pe_ratio: float | None) -> str:
     """Map P/E ratio to cheap/fair/expensive."""
     if pe_ratio is None:
@@ -193,6 +199,7 @@ class ThesisService:
       return "expensive"
     return "fair"
 
+  @trace
   def _map_fundamental_signal(self, snapshot) -> str:
     """Map fundamental metrics (net margin, ROE) to positive/neutral/negative."""
     if not snapshot:
@@ -219,6 +226,7 @@ class ThesisService:
     else:
       return "negative"
 
+  @trace
   def _extract_metrics_for_prompt(self, symbol: str, signals: dict) -> dict[str, Any]:
     """Extract quantitative metrics for enriched LLM prompt."""
     metrics = {}
@@ -272,6 +280,7 @@ class ThesisService:
 
     return metrics
     
+  @trace  
   def _build_prompt(self, symbol: str, signals: dict[str, Any], metrics: dict[str, Any] = None) -> str:
     """Build enriched prompt with both signal labels and quantitative metrics."""
     if metrics is None:
@@ -306,6 +315,7 @@ Key Metrics:
 
 Provide a concise 1-2 sentence thesis paragraph and a clear verdict (Buy/Hold/Sell)."""
   
+  @trace
   def _rule_based_verdict(self, signals: dict[str, Any]) -> str:
     
     score_map = {
@@ -332,6 +342,7 @@ Provide a concise 1-2 sentence thesis paragraph and a clear verdict (Buy/Hold/Se
         return "Sell"
     return "Hold"
   
+  @trace
   def _map_verdict(self, raw: str) -> str | None:
     """Extract verdict from LLM response."""
     t = raw.lower()
@@ -343,10 +354,12 @@ Provide a concise 1-2 sentence thesis paragraph and a clear verdict (Buy/Hold/Se
       return "Hold"
     return None
 
+  @trace
   def _clean_summary(self, raw: str) -> str:
     """Extract thesis summary from LLM response."""
     return raw.strip()
 
+  @trace
   def _fallback_summary(self, symbol: str, signals: dict[str, str], verdict: str) -> str:
     """Generate summary when LLM is unavailable."""
     return f"{symbol.upper()} shows {signals.get('fundamental', 'unknown')} fundamentals, {signals.get('technical', 'unknown')} technicals, {signals.get('sentiment', 'unknown')} sentiment, and {signals.get('valuation', 'unknown')} valuation; overall stance is {verdict}."
