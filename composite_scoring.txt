@@ -1,0 +1,40 @@
+Plan: Composite Score + Thesis Cache
+Add a composite scoring service that maps the four thesis dimensions to a 0–100 score using equal weights, then persist daily thesis results in a new thesis_cache table so same-day requests return instantly and historical verdict/score trends can be queried.
+
+Steps
+
+Confirm the score contract in code: map labels to subscores via -1/0/+1 and scale to 0–100 (e.g., -1 → 0, 0 → 50, +1 → 100), with equal weights of 0.25 per dimension in config. Define edge handling (missing signal defaults to neutral). Depends on current thesis signal labels in ThesisService.
+Create backend/app/services/composite_score_service.py that accepts the four signal labels, converts to subscores, applies weights, and returns composite_score (and optional breakdown for internal logging). Parallel with step 3.
+Add backend/app/models/thesis_cache.py with a unique constraint on (symbol, date) and fields to store the full thesis response payload: verdict, composite_score, summary, signals (JSON), generated_at, plus created_at/updated_at timestamps. Depends on step 1.
+Register the new model in lifespan.py alongside other model imports so Base.metadata.create_all includes thesis_cache. Depends on step 3.
+Update thesis_model.py to include composite_score in ThesisResponseModel. Depends on step 2.
+Update thesis_service.py to compute composite_score via CompositeScoreService and include it in the response. Keep existing LLM verdict/summary flow unchanged for uncached requests. Depends on steps 1, 2, 5.
+Add cache read/write behavior in thesis_route.py (or a repository helper): on GET /thesis/{symbol}, check thesis_cache for (symbol, utc_date) and return cached response immediately; otherwise call ThesisService and persist the result. Depends on steps 3 to 6.
+Ensure the cache key uses UTC date (not exchange-local) and that the persisted payload matches the public response for trend queries. Depends on step 7.
+Wire dependencies in thesis_dependency.py so ThesisService receives CompositeScoreService while preserving current LLM provider wiring. Parallel with step 6.
+Add or update tests for: uncached thesis generation includes composite_score in range 0–100, same-day requests return cached response without regenerating, and cache records store full payload. Depends on steps 3 to 8.
+Relevant files
+
+d:/Stock Analyzer/backend/app/services/thesis_service.py — orchestration point for signals, verdict, prompt, and response assembly
+d:/Stock Analyzer/backend/app/models/response/thesis_model.py — public response model to extend with composite_score
+d:/Stock Analyzer/backend/app/api/thesis_route.py — entry point to enforce cache-first behavior
+d:/Stock Analyzer/backend/app/dependencies/thesis_dependency.py — service wiring and LLM selection
+d:/Stock Analyzer/backend/app/core/config.py — add composite score weights and defaults
+d:/Stock Analyzer/backend/app/core/lifespan.py — model import registration for table creation
+d:/Stock Analyzer/backend/app/models/thesis_cache.py — new cache model to create
+d:/Stock Analyzer/backend/app/services/composite_score_service.py — new scoring service
+d:/Stock Analyzer/backend/tests/... — add/update tests for thesis service/route and cache
+Verification
+
+Run thesis-related tests to confirm composite_score is present and in 0–100 range.
+Exercise GET /thesis/{symbol} twice on the same UTC day and verify the second call uses cached payload.
+Start the backend once to confirm thesis_cache table is created via Base.metadata.create_all.
+Decisions
+
+Equal weights: 0.25 each for fundamental, technical, sentiment, valuation.
+Label mapping: bearish/negative/expensive=-1, neutral/fair=0, bullish/positive/cheap=+1; scale to 0–100.
+Cache stores full thesis response payload (verdict, composite_score, summary, signals, generated_at).
+Cache key uses UTC date.
+If this looks good, confirm and I will hand off.
+
+GPT-5.2-Codex • 1x
