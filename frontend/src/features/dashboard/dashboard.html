@@ -66,7 +66,49 @@
     <div class="chart-shell-head">
       <div>
         <p class="chart-shell-label">Live Workspace</p>
-        <h2>{{ activeSymbol() || 'Waiting for symbol' }}</h2>
+        <div class="symbol-row">
+          <h2>{{ activeSymbol() || 'Waiting for symbol' }}</h2>
+          @if (activeSymbol()) {
+            <button
+              type="button"
+              class="watchlist-btn"
+              [class.saved]="isInWatchlist(activeSymbol())"
+              [attr.aria-label]="
+                isInWatchlist(activeSymbol()) ? 'Remove from watchlist' : 'Add to watchlist'
+              "
+              (click)="onToggleWatchlist(activeSymbol())"
+              [title]="
+                isInWatchlist(activeSymbol()) ? 'Remove from watchlist' : 'Save to watchlist'
+              "
+            >
+              @if (isInWatchlist(activeSymbol())) {
+                <!-- Bookmark filled -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M5 2h14a1 1 0 0 1 1 1v19l-8-4-8 4V3a1 1 0 0 1 1-1z" />
+                </svg>
+              } @else {
+                <!-- Bookmark outline -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M5 2h14a1 1 0 0 1 1 1v19l-8-4-8 4V3a1 1 0 0 1 1-1z" />
+                </svg>
+              }
+            </button>
+          }
+        </div>
       </div>
       <div class="chart-shell-meta">
         <span>{{ form.value.timeframe }}</span>

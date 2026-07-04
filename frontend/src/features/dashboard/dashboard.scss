@@ -747,3 +747,30 @@
     grid-template-columns: 1fr;
   }
 }
+.watchlist-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-muted, #7f8c9f);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, transform 0.1s;
+}
+
+.watchlist-btn:hover {
+  color: var(--color-accent, #f59e0b);
+  transform: scale(1.1);
+}
+
+.watchlist-btn.saved {
+  color: var(--color-accent, #f59e0b);
+}
+.symbol-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.symbol-row h2{
+  margin:0;
+}

@@ -164,6 +164,7 @@ screenerEntries = computed(() => {
 
 signalEntries = computed(() => {
   const s = this.signals();
+  console.log('Signals:', s);
   // Handle both array ["rsioversold"] and object { RSI: "OVERSOLD" } shapes
   if (Array.isArray(s)) {
     return (s as string[]).map(raw => {
@@ -310,8 +311,8 @@ formatDate(date: string | Date | null | undefined): string {
     });
   }
 
-  onAddToWatchlist(): void {
-    const symbol = this.activeSymbol();
+  onAddToWatchlist(symbol: string): void {
+    // const symbol = this.activeSymbol();
     if (!symbol) return;
     this.stockApi.addToWatchlist(symbol).subscribe({
       next: () => {
@@ -332,4 +333,15 @@ formatDate(date: string | Date | null | undefined): string {
   private extractError(err: any): string {
     return err?.error?.error?.message || err?.error?.message || err?.message || 'An unknown error occurred.';
   }
+  isInWatchlist(symbol: string): boolean {
+  return this.watchlistData().some(item => item.symbol === symbol);
+}
+
+onToggleWatchlist(symbol: string) {
+  if (this.isInWatchlist(symbol)) {
+    this.onRemoveFromWatchlist(symbol);
+  } else {
+    this.onAddToWatchlist(symbol);
+  }
+}
 }
