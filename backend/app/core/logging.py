@@ -45,7 +45,7 @@ def trace(func):
          raise
   
   @functools.wraps(func)
-  async def sync_wrapper(*args, **kwargs):
+  def sync_wrapper(*args, **kwargs):
       logger.debug(f"Entering {func.__qualname__} with args: {args}, kwargs: {kwargs}")
       try:
          result = func(*args, **kwargs)
