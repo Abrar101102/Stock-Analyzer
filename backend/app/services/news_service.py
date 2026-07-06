@@ -79,14 +79,15 @@ class NewsService:
     def __init__(self, api_key: str | None):
         self.api_key = api_key
 
-    @redis_cache(expire_seconds=1800)
+   
+    @redis_cache(expire_seconds=1800) 
     @trace
-    def get_news_and_sentiment(self, symbol: str, limit: int = 10) -> dict[str, Any]:
+    async def get_news_and_sentiment(self, symbol: str, limit: int = 10) -> dict[str, Any]:
         if not self.api_key:
             raise ValueError("NEWS_API_KEY is missing. Configure it in backend/app/core/config.py or environment variables.")
 
-        query = self._build_query(symbol)
-        payload = self._fetch_news(query=query, limit=limit)
+        query =  self._build_query(symbol)
+        payload =  self._fetch_news(query=query, limit=limit)
 
         articles: list[ScoredArticle] = []
         for item in payload.get("articles", []):

@@ -30,7 +30,7 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
     """
 
     BASE_URL = "https://www.screener.in/company"
-
+    _html_cache: Dict[str, str] = {}    # Cache the raw HTML of the last fetched page
     # In-memory cache: {symbol: {section_name: DataFrame}}
     _cache: Dict[str, Dict[str, pd.DataFrame]] = {}
     _cache_timestamps: Dict[str, float] = {}
@@ -106,12 +106,16 @@ class ScreenerFundamentalProvider(BaseFundamentalProvider):
             age = time.time() - self._cache_timestamps.get(symbol, 0)
             if age < self.CACHE_TTL:
                 logger.debug(f"Returning cached screener data for {symbol}")
-                return None  # Signal to use cache
+                html = self._html_cache.get(symbol)
+                if html:
+                    return BeautifulSoup(html, "html.parser")
 
         for suffix in ["/consolidated/", "/"]:
             url = f"{self.BASE_URL}/{symbol}{suffix}"
             html = self._fetch_html(url)
+            
             if html:
+                self._html_cache = html  # Cache the raw HTML for potential reuse
                 return BeautifulSoup(html, "html.parser")
 
         return None

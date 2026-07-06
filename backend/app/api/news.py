@@ -10,13 +10,14 @@ router = APIRouter(prefix="/news", tags=["News"])
 
 @router.get("/{symbol}")
 @trace
-def get_news_for_symbol(
+async def get_news_for_symbol(
     symbol: str,
     limit: int = Query(10, ge=1, le=30),
     news_service: NewsService = Depends(get_news_service),
 ):
     try:
-        return news_service.get_news_and_sentiment(symbol=symbol, limit=limit)
+        result = await news_service.get_news_and_sentiment(symbol=symbol, limit=limit)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except requests.RequestException as exc:
