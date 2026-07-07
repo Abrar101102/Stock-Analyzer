@@ -1,3 +1,4 @@
+from app.fundamentals.data_providers.fallback_fundamental_provider import FallbackFundamentalProvider
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
@@ -58,7 +59,7 @@ def compare_watchlist(
         return []
 
     # Init services
-    price_service = BasePriceService()
+    price_service = FallbackFundamentalProvider()
     val_service = ValuationService(price_service)
     trend_service = TrendService()
     sector_service = SectorComparisionService(val_service, trend_service)
